@@ -1,0 +1,66 @@
+/* styles.css */
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background: linear-gradient(to bottom, lightgreen, white);
+}
+
+.login-container {
+  width: 300px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.form-container {
+  width: 500px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  padding-left: 10px; /* Left padding */
+  padding-right: 10px; /* Right padding */
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box; /* Prevent overflow */
+}
+
+
+button {
+  width: 100%;
+  padding: 10px;
+  padding-left: 10px; /* Left padding */
+  padding-right: 10px; /* Right padding */
+  background-color: #4CAF50;
+  margin: 5px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: lightgreen;
+}
+
+.hidden {
+  display: none;
+  color: red;
+}
+
+textarea {
+  max-width: 100%;
+  resize: both;
+  overflow: auto;
+}

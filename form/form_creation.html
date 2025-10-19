@@ -1,0 +1,27 @@
+<!-- form_creation.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Form</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <div class="form-container">
+    <h2>Create a Form</h2>
+    <form id="create-form">
+      <input type="text" id="form-title" placeholder="Form Title" required><br>
+      <textarea id="question" placeholder="Enter a question" required></textarea><br>
+      <button type="submit">Add Question</button>
+    </form>
+
+    <div id="form-questions">
+      <h3>Questions</h3>
+      <ul id="questions-list"></ul>
+    </div>
+  </div>
+
+  <script src="../js/form_creation.js"></script>
+</body>
+</html>
