@@ -1,21 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Forms Platform</title>
+<meta charset="UTF-8">
+<title>Google Forms Clone</title>
+<style>
+  body { font-family: Arial; margin: 40px; }
+  button { margin: 5px; padding: 8px 14px; cursor: pointer; }
+  .hidden { display: none; }
+  .form-container { margin-top: 20px; }
+</style>
 </head>
 <body>
-  <h2>Login</h2>
-  <form id="loginForm">
-    <input type="text" id="username" placeholder="Username" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-  </form>
 
-  <h2>Dashboard</h2>
+<h2>Forms Platform</h2>
+
+<div id="authButtons">
+  <button onclick="showLogin()">Login</button>
+  <button onclick="showRegister()">Sign Up</button>
+</div>
+
+<div id="mainButtons" class="hidden">
+  <button onclick="createForm()">Create Form</button>
+  <button onclick="viewForms()">View Forms</button>
   <button onclick="logout()">Logout</button>
-  <div id="formsList"></div>
+</div>
 
-  <script src="app.js"></script>
+<div id="formContainer" class="form-container"></div>
+
+<script>
+const API_URL = "http://127.0.0.1:8000/";
+let token = localStorage.getItem('access');
+
+function showLogin(){
+  document.getElementById('formContainer').innerHTML = `
+    <h3>Login</h3>
+    <input id="loginEmail" placeholder="Email"><br>
+    <input id="loginPass" type="password" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+  `;
+}
+
+function showRegister(){
+  document.getElementById('formContainer').innerHTML = `
+    <h3>Sign Up</h3>
+    <input id="regEmail" placeholder="Email"><br>
+    <input id="regPass" type="password" placeholder="Password"><br>
+    <button onclick="register()">Sign Up</button>
+  `;
+}
+
+async function register(){
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPass').value;
+  const res = await fetch(`${API_URL}register/`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password})
+  });
+  const data = await res.json();
+  if(res.ok) alert('Registration successful! Now log in.');
+  else alert(data.error || 'Error registering.');
+}
+
+async function login(){
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPass').value;
+  const res = await fetch(`${API_URL}login/`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password})
+  });
+  const data = await res.json();
+  if(res.ok){
+    localStorage.setItem('access', data.access);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    showMainButtons();
+  } else alert(data.error || 'Login failed');
+}
+
+function showMainButtons(){
+  document.getElementById('authButtons').classList.add('hidden');
+  document.getElementById('mainButtons').classList.remove('hidden');
+  document.getElementById('formContainer').innerHTML = '';
+}
+
+function logout(){
+  localStorage.clear();
+  document.getElementById('authButtons').classList.remove('hidden');
+  document.getElementById('mainButtons').classList.add('hidden');
+  document.getElementById('formContainer').innerHTML = '';
+}
+
+function createForm(){
+  window.location.href = 'form_editor.html';
+}
+
+async function viewForms(){
+  const res = await fetch(`${API_URL}forms/`, {headers:{'Authorization':`Bearer ${localStorage.getItem('access')}`}});
+  const forms = await res.json();
+  let html = '<h3>All Forms</h3>';
+  forms.forEach(f=>{
+    html += `
+      <div>
+        <b>${f.name}</b> by ${f.creator?.email || 'Anonymous'}
+        <br>
+        <button onclick="editForm(${f.id})">Edit</button>
+        <button onclick="deleteForm(${f.id})">Delete</button>
+        <button onclick="shareForm(${f.id})">Share Link</button>
+        <hr>
+      </div>`;
+  });
+  document.getElementById('formContainer').innerHTML = html;
+}
+
+function editForm(id){
+  localStorage.setItem('formId', id);
+  window.location.href = 'form_editor.html';
+}
+
+async function deleteForm(id){
+  if(!confirm('Delete this form?')) return;
+  const res = await fetch(`${API_URL}forms/${id}/`, {
+    method:'DELETE',
+    headers:{'Authorization':`Bearer ${localStorage.getItem('access')}`}
+  });
+  if(res.ok) viewForms();
+}
+
+function shareForm(id){
+  const link = `${window.location.origin}/fill_form.html?form=${id}`;
+  navigator.clipboard.writeText(link);
+  alert('Link copied!');
+}
+
+if(token) showMainButtons();
+</script>
 </body>
 </html>

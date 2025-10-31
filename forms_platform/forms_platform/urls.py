@@ -18,24 +18,51 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from forms_app.views import UserViewSet, FormularViewSet, FilledFormViewSet
+
+from forms_app.views import (
+    UserViewSet,
+    FormularViewSet,
+    FilledFormViewSet,
+    register_user,
+    login_user,
+    logout_user
+)
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 
-
+# Router za sve viewsete
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'forms', FormularViewSet)
 router.register(r'filled_forms', FilledFormViewSet)
 
 urlpatterns = [
+    # početna stranica (frontend index.html)
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
+
+    # Django admin
     path('admin/', admin.site.urls),
+
+
+    # Autentifikacija (custom endpoints)
+    path('register/', register_user, name='register'),
+    path('login/', login_user, name='login'),
+    path('logout/', logout_user, name='logout'),
+
+    # API rute za CRUD
+    path('api/', include(router.urls)),
+
+
+    # JWT tokeni
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/', include(router.urls)),
+
+  
+
+    
 ]
 
+# Staticki fajlovi i slike
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

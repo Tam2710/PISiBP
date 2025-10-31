@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
@@ -9,12 +10,14 @@ class User(AbstractUser):
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='user')
 
 class Formular(models.Model):
-    creator = models.ForeignKey(User, related_name='created_forms', on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    allow_anonymous = models.BooleanField(default=False)
-    is_locked = models.BooleanField(default=False)
-    collaborators = models.ManyToManyField(User, through='Collaborator', related_name='collaborated_forms')
+    description = models.TextField(blank=True, null=True)
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_forms')
+    collaborators = models.ManyToManyField(User, blank=True, related_name='collaborations')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
 
 class Collaborator(models.Model):
     ROLE_CHOICES = (('editor', 'Editor'), ('observer', 'Observer'))

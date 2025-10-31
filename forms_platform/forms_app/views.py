@@ -1,12 +1,11 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from copy import deepcopy
-from django.http import HttpResponse
-import openpyxl
 from rest_framework.parsers import MultiPartParser, FormParser
-
+from django.http import HttpResponse
+from copy import deepcopy
+import openpyxl
 
 from .models import User, Formular, Question, Option, FilledForm, Answer, Collaborator
 from .serializers import (
@@ -16,6 +15,65 @@ from .serializers import (
     FilledFormSerializer,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+# ------------------ USER REGISTER / LOGIN ------------------
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def register_user(request):
+    try:
+        data = request.data
+        email = data.get('email')
+        password = data.get('password')
+
+        if not email or not password:
+            return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email=email).exists():
+            return Response({'error': 'User with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=email, email=email, password=password)
+        return Response({'message': 'User registered successfully!'}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def login_user(request):
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    try:
+        user = User.objects.get(email=email)
+        if not user.check_password(password):
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "user_type": user.user_type,
+        }
+    })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def logout_user(request):
+    try:
+        refresh_token = request.data["refresh"]
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+        return Response({"message": "Logged out successfully."}, status=status.HTTP_205_RESET_CONTENT)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ------------------ USERS ------------------
@@ -31,7 +89,11 @@ class FormularViewSet(viewsets.ModelViewSet):
     serializer_class = FormularSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
-    #  Kloniranje forme
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)
+
+    # Kloniranje forme
     @action(detail=True, methods=['post'])
     def clone(self, request, pk=None):
         form = self.get_object()
@@ -56,7 +118,7 @@ class FormularViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(cloned_form)
         return Response(serializer.data)
 
-    #  Pregled rezultata popunjenih formi
+    # Pregled rezultata popunjenih formi
     @action(detail=True, methods=['get'])
     def results(self, request, pk=None):
         form = self.get_object()
@@ -82,7 +144,7 @@ class FormularViewSet(viewsets.ModelViewSet):
 
         return Response(data)
 
-    #  Izvoz rezultata u Excel
+    # Izvoz rezultata u Excel
     @action(detail=True, methods=['get'])
     def export(self, request, pk=None):
         form = self.get_object()
@@ -93,13 +155,11 @@ class FormularViewSet(viewsets.ModelViewSet):
         ws = wb.active
         ws.title = form.name
 
-        # Header
         headers = ["User"]
         for q in form.questions.all():
             headers.append(q.text)
         ws.append(headers)
 
-        # Data
         for ff in FilledForm.objects.filter(form=form):
             row = [ff.user.username if ff.user else "Anonymous"]
             for q in form.questions.all():
