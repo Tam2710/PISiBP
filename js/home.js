@@ -1,14 +1,15 @@
+//home.js
 window.onload = function() {
   const formsList = document.getElementById('forms-list');
   const searchBar = document.getElementById('search-bar');
   const createBtn = document.getElementById('create-form-btn');
   const loginLink = document.getElementById('login-link');
 
-  // Fetch forms and login status from localStorage
+  // Fetch all forms from localStorage
   const forms = JSON.parse(localStorage.getItem('userForms')) || [];
   const loggedIn = localStorage.getItem('loggedIn') === 'true';
 
-  // Toggle visibility based on login
+  // Toggle create/login visibility
   if (!loggedIn) {
     createBtn.style.display = 'none';
     loginLink.style.display = 'inline-block';
@@ -21,10 +22,10 @@ window.onload = function() {
   function renderForms(filter = '') {
     formsList.innerHTML = '';
 
-    const filteredForms = forms.filter(form => form.title.toLowerCase().includes(filter.toLowerCase()));
+    const filteredForms = forms.filter(f => f.title.toLowerCase().includes(filter.toLowerCase()));
 
     if (filteredForms.length === 0) {
-      formsList.innerHTML = "<p>" + (forms.length === 0 ? "You haven't created any forms yet." : "No forms match your search.") + "</p>";
+      formsList.innerHTML = `<p>${forms.length === 0 ? "No forms created yet." : "No forms match your search."}</p>`;
       return;
     }
 
@@ -32,49 +33,54 @@ window.onload = function() {
       const formDiv = document.createElement('div');
       formDiv.classList.add('form-item');
 
+      // Title clickable to fill form
       const formTitle = document.createElement('h3');
       formTitle.textContent = form.title;
+      formTitle.style.cursor = 'pointer';
+      formTitle.onclick = () => openForm(form);
       formDiv.appendChild(formTitle);
 
-      // Edit/Delete buttons only if logged in
+      // Buttons for logged-in users
       if (loggedIn) {
-        const editButton = document.createElement('button');
-        editButton.textContent = 'Edit';
-        editButton.onclick = () => editForm(index);
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.onclick = () => editForm(index);
 
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Delete';
-        deleteButton.onclick = () => deleteForm(index);
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = () => deleteForm(index);
 
-        formDiv.appendChild(editButton);
-        formDiv.appendChild(deleteButton);
+        formDiv.appendChild(editBtn);
+        formDiv.appendChild(deleteBtn);
       }
 
       formsList.appendChild(formDiv);
     });
   }
 
-  // Initial render
   renderForms();
 
   // Search functionality
-  searchBar.addEventListener('input', function() {
-    renderForms(this.value);
-  });
+  searchBar.addEventListener('input', () => renderForms(searchBar.value));
 
-  // Edit a form
+  // Open form to fill
+  function openForm(form) {
+    localStorage.setItem('fillForm', JSON.stringify(form));
+    window.location.href = 'form/form_fill.html';
+  }
+
+  // Edit form (for logged-in users)
   function editForm(index) {
-    const form = forms[index];
-    localStorage.setItem('editForm', JSON.stringify(form));
+    localStorage.setItem('editForm', JSON.stringify(forms[index]));
     window.location.href = 'form/form_creation.html';
   }
 
-  // Delete a form
+  // Delete form (for logged-in users)
   function deleteForm(index) {
     if (!confirm('Are you sure you want to delete this form?')) return;
     forms.splice(index, 1);
     localStorage.setItem('userForms', JSON.stringify(forms));
-    renderForms(searchBar.value); // Re-render with current search filter
+    renderForms(searchBar.value);
   }
 };
 

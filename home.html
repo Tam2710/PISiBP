@@ -1,3 +1,4 @@
+<!--home.html-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,10 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home - My Forms</title>
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .create-form-btn{
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      margin: 5px;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .create-form-btn:hover {
+    background-color: lightgreen;
+    color: black;
+    }
+  </style>
 </head>
 <body class="bg-light">
   <div class="form-container">
-    <h2>Your Forms</h2>
+    <h2>Available Forms</h2>
 
     <!-- Search bar -->
     <input type="text" id="search-bar" placeholder="Search forms..." style="width: 100%; padding: 8px; margin-bottom: 12px;">
@@ -19,11 +36,10 @@
     </div>
 
     <!-- Buttons / links -->
-    <button id="button" onclick="window.location.href='form/form_creation.html'">Create New Form</button>
+    <button id="create-form-btn" onclick="window.location.href='form/form_creation.html'">Create New Form</button>
     <a id="login-link" href="login.html" style="margin-left: 10px;">Login</a>
   </div>
 
   <script src="js/home.js"></script>
 </body>
 </html>
-
