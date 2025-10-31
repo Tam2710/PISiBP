@@ -30,6 +30,19 @@ document.getElementById('create-form').addEventListener('submit', function (e) {
     alert('Form added successfully!');
   });
   
+  /*
+    document.getElementById('create-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const response = await fetch('/forms/create/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: formTitle, question: questionText })
+      });
+    if (response.ok) window.location.href = '/';
+    });
+
+  */
+
   // Handle form editing when editing an existing form
   window.onload = function() {
     const editForm = JSON.parse(localStorage.getItem('editForm'));

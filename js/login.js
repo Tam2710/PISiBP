@@ -1,5 +1,11 @@
 document.getElementById('login-form').addEventListener('submit', function(event) {
   event.preventDefault();
+
+  /*
+  document.getElementById('login-form').addEventListener('submit', function(event) {
+    // preventDefault() can be removed if submitting to backend
+  });
+  */
   
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
@@ -11,4 +17,10 @@ document.getElementById('login-form').addEventListener('submit', function(event)
   } else {
     document.getElementById('error-message').classList.remove('hidden');
   }
+
+  /*
+  {% if form.errors %}
+    <div class="error">{{ form.errors }}</div>
+  {% endif %}
+  */
 });

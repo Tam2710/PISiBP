@@ -15,6 +15,12 @@
       <input type="password" id="password" placeholder="Password" required><br>
       <button type="submit">Login</button>
     </form>
+    <!--
+      <form method="POST" action="{% url 'login' %}">
+        {% csrf_token %}
+        ...
+      </form>
+    -->
     <div id="error-message" class="hidden">Invalid login credentials</div>
   </div>
 

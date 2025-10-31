@@ -9,14 +9,21 @@
 <body class="bg-light">
   <div class="form-container">
     <h2>Your Forms</h2>
-    
+
+    <!-- Search bar -->
+    <input type="text" id="search-bar" placeholder="Search forms..." style="width: 100%; padding: 8px; margin-bottom: 12px;">
+
+    <!-- Forms list -->
     <div id="forms-list">
-      <!-- Dynamically populated list of forms will go here -->
+      <!-- Dynamically populated forms -->
     </div>
 
-    <button onclick="window.location.href='form/form_creation.html'">Create New Form</button>
+    <!-- Buttons / links -->
+    <button id="button" onclick="window.location.href='form/form_creation.html'">Create New Form</button>
+    <a id="login-link" href="login.html" style="margin-left: 10px;">Login</a>
   </div>
 
   <script src="js/home.js"></script>
 </body>
 </html>
+

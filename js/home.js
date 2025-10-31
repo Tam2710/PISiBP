@@ -1,61 +1,80 @@
-// home.js
-
 window.onload = function() {
-  // Fetch the saved forms from localStorage
-  const forms = JSON.parse(localStorage.getItem('userForms')) || [];
-
   const formsList = document.getElementById('forms-list');
+  const searchBar = document.getElementById('search-bar');
+  const createBtn = document.getElementById('create-form-btn');
+  const loginLink = document.getElementById('login-link');
 
-  // Check if there are any forms
-  if (forms.length === 0) {
-    formsList.innerHTML = "<p>You haven't created any forms yet.</p>";
+  // Fetch forms and login status from localStorage
+  const forms = JSON.parse(localStorage.getItem('userForms')) || [];
+  const loggedIn = localStorage.getItem('loggedIn') === 'true';
+
+  // Toggle visibility based on login
+  if (!loggedIn) {
+    createBtn.style.display = 'none';
+    loginLink.style.display = 'inline-block';
   } else {
-    // Dynamically display the forms
-    forms.forEach((form, index) => {
+    createBtn.style.display = 'inline-block';
+    loginLink.style.display = 'none';
+  }
+
+  // Render forms (filtered by search)
+  function renderForms(filter = '') {
+    formsList.innerHTML = '';
+
+    const filteredForms = forms.filter(form => form.title.toLowerCase().includes(filter.toLowerCase()));
+
+    if (filteredForms.length === 0) {
+      formsList.innerHTML = "<p>" + (forms.length === 0 ? "You haven't created any forms yet." : "No forms match your search.") + "</p>";
+      return;
+    }
+
+    filteredForms.forEach((form, index) => {
       const formDiv = document.createElement('div');
       formDiv.classList.add('form-item');
-      
+
       const formTitle = document.createElement('h3');
       formTitle.textContent = form.title;
-      
-      const editButton = document.createElement('button');
-      editButton.textContent = 'Edit';
-      editButton.onclick = () => editForm(index);
-      
-      const deleteButton = document.createElement('button');
-      deleteButton.textContent = 'Delete';
-      deleteButton.onclick = () => deleteForm(index);
-      
       formDiv.appendChild(formTitle);
-      formDiv.appendChild(editButton);
-      formDiv.appendChild(deleteButton);
+
+      // Edit/Delete buttons only if logged in
+      if (loggedIn) {
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Edit';
+        editButton.onclick = () => editForm(index);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = () => deleteForm(index);
+
+        formDiv.appendChild(editButton);
+        formDiv.appendChild(deleteButton);
+      }
+
       formsList.appendChild(formDiv);
     });
   }
+
+  // Initial render
+  renderForms();
+
+  // Search functionality
+  searchBar.addEventListener('input', function() {
+    renderForms(this.value);
+  });
+
+  // Edit a form
+  function editForm(index) {
+    const form = forms[index];
+    localStorage.setItem('editForm', JSON.stringify(form));
+    window.location.href = 'form/form_creation.html';
+  }
+
+  // Delete a form
+  function deleteForm(index) {
+    if (!confirm('Are you sure you want to delete this form?')) return;
+    forms.splice(index, 1);
+    localStorage.setItem('userForms', JSON.stringify(forms));
+    renderForms(searchBar.value); // Re-render with current search filter
+  }
 };
 
-// Edit a form by redirecting to the form creation page with the existing data
-function editForm(index) {
-  const forms = JSON.parse(localStorage.getItem('userForms')) || [];
-  const form = forms[index];
-
-  // Store the form data in localStorage or pass it as query params
-  localStorage.setItem('editForm', JSON.stringify(form));
-
-  // Redirect to form creation page with form data
-  window.location.href = 'form_creation.html';
-}
-
-// Delete a form
-function deleteForm(index) {
-  const forms = JSON.parse(localStorage.getItem('userForms')) || [];
-
-  // Remove the form from the array
-  forms.splice(index, 1);
-
-  // Save the updated array back to localStorage
-  localStorage.setItem('userForms', JSON.stringify(forms));
-
-  // Refresh the page to reflect changes
-  window.location.reload();
-}
