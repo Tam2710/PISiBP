@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Form Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+    background-color: #f7f7f7;
+  }
+  h2, h3 {
+    color: #333;
+    text-align: center;
+  }
+  form, .question-block {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  input[type="text"], textarea, select {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  input[type="file"] {
+    margin: 5px 0;
+  }
+  button {
+    display: block;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 10px auto;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+</style>
+</head>
+<body>
+
+<h2>Form Editor</h2>
+
+<form id="formCreate">
+  <input type="text" id="formName" placeholder="Form Name" required>
+  <textarea id="formDesc" placeholder="Form Description"></textarea>
+  
+  <label>
+    <input type="checkbox" id="allowAnonymous"> Allow Anonymous
+  </label>
+  
+  <button type="submit">Save Form</button>
+</form>
+
+<h3>Questions</h3>
+<div id="questionsList"></div>
+<button onclick="addQuestion()">Add Question</button>
+
+<script>
+const API_URL = "http://localhost:8000/";
+const token = localStorage.getItem('token');
+const formId = localStorage.getItem('formId');
+const questions = [];
+
+// === Create / Edit Form (with images) ===
+document.getElementById('formCreate').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('formName').value;
+  const desc = document.getElementById('formDesc').value;
+  const allowAnonymous = document.getElementById('allowAnonymous').checked;
+
+  const formDataPayload = new FormData();
+  formDataPayload.append('name', name);
+  formDataPayload.append('description', desc);
+  formDataPayload.append('allow_anonymous', allowAnonymous);
+
+  // Add questions and images
+  questions.forEach((q, i)=>{
+    formDataPayload.append(`questions[${i}][text]`, q.text);
+    formDataPayload.append(`questions[${i}][type]`, q.type);
+    formDataPayload.append(`questions[${i}][required]`, q.required);
+    if(q.image) formDataPayload.append(`questions[${i}][image]`, q.image);
+
+    if(q.options && q.options.length > 0){
+      q.options.forEach((opt, j)=>{
+        formDataPayload.append(`questions[${i}][options][${j}][text]`, opt.text);
+        if(opt.image) formDataPayload.append(`questions[${i}][options][${j}][image]`, opt.image);
+      });
+    }
+  });
+
+  const url = formId ? `${API_URL}forms/${formId}/` : `${API_URL}forms/`;
+  const method = formId ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method,
+    headers: {'Authorization': `Bearer ${token}`}, // NE dodajemo Content-Type
+    body: formDataPayload
+  });
+
+  if(res.ok){
+    alert(' Form saved with images!');
+    window.location.href = 'index.html';
+  } else alert(' Error saving form');
+});
+
+// === Add new question ===
+function addQuestion(){
+  const q = {text: '', type: 'short_text', required: true, options: []};
+  questions.push(q);
+  renderQuestions();
+}
+
+// === Add option to question ===
+function addOption(qIndex){
+  const option = {text: '', image: null};
+  questions[qIndex].options.push(option);
+  renderQuestions();
+}
+
+// === Render all questions dynamically ===
+function renderQuestions(){
+  const container = document.getElementById('questionsList');
+  container.innerHTML = '';
+  questions.forEach((q,i)=>{
+    const div = document.createElement('div');
+    div.classList.add('question-block');
+    div.innerHTML = `
+      <label>Question Text</label>
+      <input type="text" value="${q.text}" oninput="questions[${i}].text=this.value">
+      
+      <label>Question Type</label>
+      <select onchange="questions[${i}].type=this.value">
+        <option value="short_text" ${q.type==='short_text'?'selected':''}>Short Text</option>
+        <option value="long_text" ${q.type==='long_text'?'selected':''}>Long Text</option>
+        <option value="single_choice" ${q.type==='single_choice'?'selected':''}>Single Choice</option>
+        <option value="multi_choice" ${q.type==='multi_choice'?'selected':''}>Multi Choice</option>
+        <option value="numeric" ${q.type==='numeric'?'selected':''}>Numeric</option>
+        <option value="date" ${q.type==='date'?'selected':''}>Date</option>
+        <option value="time" ${q.type==='time'?'selected':''}>Time</option>
+      </select>
+
+      <label>Image (optional)</label>
+      <input type="file" accept="image/*" onchange="questions[${i}].image=this.files[0]">
+
+      <label>
+        <input type="checkbox" ${q.required?'checked':''} onchange="questions[${i}].required=this.checked">
+        Required
+      </label>
+      <br>
+
+      ${['single_choice','multi_choice'].includes(q.type) ? `
+        <div>
+          <strong>Options:</strong>
+          ${(q.options||[]).map((opt,j)=>`
+            <div>
+              <input type="text" value="${opt.text}" oninput="questions[${i}].options[${j}].text=this.value" placeholder="Option text">
+              <input type="file" accept="image/*" onchange="questions[${i}].options[${j}].image=this.files[0]">
+            </div>
+          `).join('')}
+          <button type="button" onclick="addOption(${i})">Add Option</button>
+        </div>
+      `:''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+renderQuestions();
+</script>
+</body>
+</html>

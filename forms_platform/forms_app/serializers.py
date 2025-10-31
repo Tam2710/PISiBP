@@ -7,11 +7,13 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'user_type']
 
 class OptionSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = Option
         fields = ['id', 'text', 'image']
 
 class QuestionSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False, allow_null=True)
     options = OptionSerializer(many=True, required=False)
     
     class Meta:

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Form Results</title>
+</head>
+<body>
+<h2>Form Results</h2>
+<div id="resultsList"></div>
+<button onclick="exportForm()">Export XLSX</button>
+
+<script src="app.js"></script>
+<script>
+const resultsList = document.getElementById('resultsList');
+const resultsFormId = localStorage.getItem('formId');
+
+async function loadResults(){
+  const res = await fetch(`${API_URL}forms/${resultsFormId}/results/`, {
+    headers:{'Authorization': `Bearer ${token}`}
+  });
+  const results = await res.json();
+  resultsList.innerHTML = JSON.stringify(results, null, 2);
+}
+loadResults();
+
+function exportForm(){
+  window.open(`${API_URL}forms/${resultsFormId}/export/`, '_blank');
+}
+</script>
+</body>
+</html>
