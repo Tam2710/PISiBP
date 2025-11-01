@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Formular, Question, Option, FilledForm, Answer, Collaborator
 
+
 User = get_user_model()
 
 
@@ -14,7 +15,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'username', 'password', 'user_type']
 
     def create(self, validated_data):
-        # Kreiranje korisnika sa hashovanom lozinkom
         user = User.objects.create_user(
             username=validated_data.get('username'),
             email=validated_data.get('email'),
@@ -33,11 +33,13 @@ class UserEmailSerializer(serializers.ModelSerializer):
 # ---------------------- OPTION SERIALIZER ----------------------
 class OptionSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True)
+    question = serializers.PrimaryKeyRelatedField(
+        queryset=Question.objects.all()
+    )
 
     class Meta:
         model = Option
-        fields = ['id', 'text', 'image']
-
+        fields = ['id', 'question', 'text', 'image']
 
 # ---------------------- QUESTION SERIALIZER ----------------------
 class QuestionSerializer(serializers.ModelSerializer):
@@ -52,8 +54,8 @@ class QuestionSerializer(serializers.ModelSerializer):
 # ---------------------- FORM SERIALIZER ----------------------
 class FormularSerializer(serializers.ModelSerializer):
     creator = UserEmailSerializer(read_only=True)
-    collaborators = UserEmailSerializer(read_only=True, many=True)
-    questions = QuestionSerializer(many=True, required=False)
+    collaborators = UserEmailSerializer(many=True, read_only=True)
+    questions = QuestionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Formular
@@ -69,17 +71,49 @@ class FormularSerializer(serializers.ModelSerializer):
             'questions'
         ]
 
+    def get_questions(self, obj):
+        """Bezbedno serijalizuje pitanja i opcije"""
+        questions = obj.questions.all()
+        return QuestionSerializer(questions, many=True).data
+
     def create(self, validated_data):
-        questions_data = validated_data.pop('questions', [])
-        form = Formular.objects.create(**validated_data)
+        """Ručno kreira formu i pitanja iz FormData."""
+        request = self.context['request']
 
-        for question_data in questions_data:
-            options_data = question_data.pop('options', [])
-            question = Question.objects.create(form=form, **question_data)
-            for option_data in options_data:
-                Option.objects.create(question=question, **option_data)
+        form = Formular.objects.create(
+            name=request.data.get('name'),
+            description=request.data.get('description', ''),
+            allow_anonymous=request.data.get('allow_anonymous') in ['true', True, 'on'],
+            creator=request.user
+        )
 
+        i = 0
+        while True:
+            text = request.data.get(f'questions[{i}][text]')
+            if not text:
+                break
+            q_type = request.data.get(f'questions[{i}][type]', 'short_text')
+            required = request.data.get(f'questions[{i}][required]', 'true') in ['true', True, 'on']
+            image = request.FILES.get(f'questions[{i}][image]')
+
+            question = Question.objects.create(
+                form=form, text=text, type=q_type, required=required, image=image
+            )
+
+            j = 0
+            while True:
+                opt_text = request.data.get(f'questions[{i}][options][{j}][text]')
+                if not opt_text:
+                    break
+                opt_image = request.FILES.get(f'questions[{i}][options][{j}][image]')
+                Option.objects.create(question=question, text=opt_text, image=opt_image)
+                j += 1
+
+            i += 1
+
+        #  sada vraćamo Django instancu, ne dict
         return form
+
 
 
 # ---------------------- ANSWER SERIALIZER ----------------------
@@ -92,14 +126,34 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 
 # ---------------------- FILLED FORM SERIALIZER ----------------------
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Answer
+        fields = ['id', 'question', 'value', 'selected_options']
+
 class FilledFormSerializer(serializers.ModelSerializer):
-    user = UserEmailSerializer(read_only=True)
-    answers = AnswerSerializer(many=True)
+    answers = AnswerSerializer(many=True, write_only=True)
 
     class Meta:
         model = FilledForm
-        fields = ['id', 'form', 'user', 'created_at', 'answers']
+        fields = ['id', 'form', 'user', 'answers']
 
+    def create(self, validated_data):
+        answers_data = validated_data.pop('answers')
+        request = self.context.get('request')
+
+        # Ako je korisnik prijavljen
+        user = request.user if request and request.user.is_authenticated else None
+
+        filled_form = FilledForm.objects.create(user=user, **validated_data)
+
+        for answer_data in answers_data:
+            options = answer_data.pop('selected_options', [])
+            answer = Answer.objects.create(filled_form=filled_form, **answer_data)
+            if options:
+                answer.selected_options.set(options)
+
+        return filled_form
 
 # ---------------------- COLLABORATOR SERIALIZER ----------------------
 class CollaboratorSerializer(serializers.ModelSerializer):

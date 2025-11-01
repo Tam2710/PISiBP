@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Forms</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+    padding: 30px;
+  }
+  h2 {
+    text-align: center;
+  }
+  .form-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .locked {
+    opacity: 0.8;
+  }
+  button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+</style>
+</head>
+<body>
+
+<h2>📋 My Forms</h2>
+<div id="formsList"></div>
+
+<script>
+const API_URL = "http://127.0.0.1:8000/api/";
+let token = localStorage.getItem('access');
+const refresh = localStorage.getItem('refresh');
+const user = JSON.parse(localStorage.getItem('user') || "{}");
+
+// === Token Refresh ===
+async function getValidToken() {
+  if (token) {
+    const res = await fetch(API_URL + "forms/", {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (res.status !== 401) return token;
+  }
+  if (refresh) {
+    const res = await fetch(API_URL + "token/refresh/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh })
+    });
+    const data = await res.json();
+    if (res.ok && data.access) {
+      localStorage.setItem("access", data.access);
+      token = data.access;
+      return token;
+    } else {
+      alert("Session expired. Please log in again.");
+      localStorage.clear();
+      window.location.href = "/";
+      return null;
+    }
+  }
+  alert("Please log in again.");
+  window.location.href = "/";
+  return null;
+}
+
+// === Load Forms ===
+async function loadForms() {
+  const validToken = await getValidToken();
+  if (!validToken) return;
+
+  const res = await fetch(API_URL + "forms/", {
+    headers: { "Authorization": `Bearer ${validToken}` }
+  });
+
+  if (!res.ok) {
+    alert("Failed to load forms.");
+    return;
+  }
+
+  const forms = await res.json();
+  const container = document.getElementById("formsList");
+  container.innerHTML = "";
+
+  const visibleForms = forms.filter(f =>
+    f.creator?.email === user.email ||
+    (f.collaborators || []).some(c => c.email === user.email)
+  );
+
+  if (visibleForms.length === 0) {
+    container.innerHTML = "<p>No forms available for you.</p>";
+    return;
+  }
+
+  visibleForms.forEach(f => {
+    const div = document.createElement("div");
+    div.classList.add("form-card");
+    if (f.is_locked) div.classList.add("locked");
+    div.setAttribute("data-form-id", f.id);
+
+    const isCreator = f.creator?.email === user.email;
+    const isLocked = f.is_locked || false;
+
+    let buttons = `<button onclick="viewResults(${f.id})">📊 Results</button>`;
+
+    if (!isLocked) {
+      buttons = `<button onclick="editForm(${f.id})">✏️ Edit</button>` + buttons;
+    }
+
+    if (isCreator) {
+      buttons += `
+        <button onclick="addCollaborator(${f.id})">➕ Add Collaborator</button>
+        <button onclick="removeCollaborators(${f.id})">❌ Remove Collaborators</button>
+        <button onclick="deleteForm(${f.id})">🗑 Delete</button>
+        ${!isLocked
+          ? `<button class="publish-btn" onclick="publishForm(${f.id})">🚀 Publish</button>`
+          : `<button class="share-btn" onclick="shareForm(${f.id})">🔗 Share</button>`}
+      `;
+    } else if (isLocked) {
+      buttons += `<button class="share-btn" onclick="shareForm(${f.id})">🔗 Share</button>`;
+    }
+
+    div.innerHTML = `
+      <h3>${f.name} ${isLocked ? "🔒" : ""}</h3>
+      <p>${f.description || "No description"}</p>
+      <div>${buttons}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// === Core Actions ===
+function editForm(id) {
+  localStorage.setItem("formId", id);
+  window.location.href = "/form_editor/";
+}
+
+function viewResults(id) {
+  localStorage.setItem("formId", id);
+  window.location.href = "/results/";
+}
+
+// === Add Collaborator ===
+async function addCollaborator(formId) {
+  const email = prompt("Enter collaborator email:");
+  if (!email) return;
+
+  const formData = new FormData();
+  formData.append("email", email);
+
+  const res = await fetch(API_URL + `forms/${formId}/add_collaborator/`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+    body: formData
+  });
+
+  if (res.ok) {
+    alert("✅ Collaborator added!");
+    loadForms();
+  } else {
+    const err = await res.text();
+    alert("❌ Error adding collaborator: " + err);
+  }
+}
+
+// === Remove Collaborators ===
+async function removeCollaborators(formId) {
+  const res = await fetch(API_URL + `forms/${formId}/collaborators/`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  const data = await res.json();
+
+  if (!data.length) {
+    alert("No collaborators found for this form.");
+    return;
+  }
+
+  let msg = "Select collaborator to remove:\n";
+  data.forEach((c, i) => {
+    msg += `${i + 1}. ${c.email}\n`;
+  });
+
+  const choice = prompt(msg + "\nEnter number to remove:");
+  const index = parseInt(choice) - 1;
+  if (isNaN(index) || index < 0 || index >= data.length) return;
+
+  const email = data[index].email;
+  const formData = new FormData();
+  formData.append("email", email);
+
+  const resDel = await fetch(API_URL + `forms/${formId}/remove_collaborator/`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+    body: formData
+  });
+
+  if (resDel.ok) {
+    alert("✅ Collaborator removed!");
+    loadForms();
+  } else {
+    const err = await resDel.text();
+    console.error("❌ Error removing collaborator:", err);
+    alert("Failed to remove collaborator: " + err);
+  }
+}
+
+// === Delete Form ===
+async function deleteForm(id) {
+  if (!confirm("Are you sure you want to delete this form?")) return;
+
+  const res = await fetch(API_URL + `forms/${id}/`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+
+  if (res.ok) {
+    alert("🗑 Form deleted!");
+    loadForms();
+  } else {
+    alert("Failed to delete form.");
+  }
+}
+
+// === Publish / Share ===
+async function publishForm(id) {
+  const res = await fetch(API_URL + `forms/${id}/publish/`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+
+  if (res.ok) {
+    alert("🚀 Form published!");
+
+    // 🔄 Ažuriraj prikaz bez ponovnog učitavanja cele stranice
+    const formCard = document.querySelector(`[data-form-id="${id}"]`);
+    if (formCard) {
+      formCard.classList.add("locked");
+
+      const title = formCard.querySelector("h3");
+      if (title && !title.textContent.includes("🔒")) {
+        title.textContent += " 🔒";
+      }
+
+      // Ukloni Edit i Publish dugmad
+      const editBtn = formCard.querySelector('button[onclick^="editForm"]');
+      if (editBtn) editBtn.remove();
+
+      const publishBtn = formCard.querySelector(".publish-btn");
+      if (publishBtn) {
+        publishBtn.outerHTML = `
+          <button class="share-btn" onclick="shareForm(${id})">🔗 Share</button>
+        `;
+      }
+    }
+  } else {
+    const err = await res.text();
+    console.error("Error publishing form:", err);
+    alert("❌ Failed to publish form.");
+  }
+}
+
+function shareForm(id) {
+  const link = `${window.location.origin}/fill_form/?form=${id}`;
+  navigator.clipboard.writeText(link);
+  alert("🔗 Link copied to clipboard!");
+}
+
+loadForms();
+</script>
+</body>
+</html>
+

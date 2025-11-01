@@ -12,6 +12,7 @@ from .serializers import (
     UserSerializer,
     FormularSerializer,
     QuestionSerializer,
+    OptionSerializer,
     FilledFormSerializer,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -93,7 +94,72 @@ class FormularViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 
-    # Kloniranje forme
+    # ===  DODATO: Dodavanje kolaboratora ===
+    @action(detail=True, methods=['post'])
+    def add_collaborator(self, request, pk=None):
+        form = self.get_object()
+
+        if form.creator != request.user:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        email = request.data.get('email')
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        form.collaborators.add(user)
+        return Response({'message': f'{user.email} added as collaborator'}, status=status.HTTP_200_OK)
+
+    # ===  DODATO: Prikaz kolaboratora ===
+    @action(detail=True, methods=['get'])
+    def collaborators(self, request, pk=None):
+        form = self.get_object()
+        if form.creator != request.user:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        collaborators = [{'id': u.id, 'email': u.email} for u in form.collaborators.all()]
+        return Response(collaborators)
+
+    # ===  DODATO: Uklanjanje kolaboratora ===
+    @action(detail=True, methods=['post'])
+    def remove_collaborator(self, request, pk=None):
+        form = self.get_object()
+
+        if form.creator != request.user:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        email = request.data.get('email')
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        form.collaborators.remove(user)
+        return Response({'message': f'{user.email} removed as collaborator'}, status=status.HTTP_200_OK)
+
+    # ===  DODATO: Objavljivanje forme (publish) ===
+    @action(detail=True, methods=['post'])
+    def publish(self, request, pk=None):
+        form = self.get_object()
+
+        if form.creator != request.user:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        form.is_locked = True   # 🔒 forma je sada zaključana (objavljena)
+        form.save()
+        return Response({'message': 'Form published (locked) successfully'}, status=status.HTTP_200_OK)
+    
+    # === LOCK
+    @action(detail=True, methods=['post'])
+    def lock(self, request, pk=None):
+        """Zaključaj formu (onemogući izmene)"""
+        form = self.get_object()
+        form.is_locked = True
+        form.save()
+        return Response({'message': 'Form locked successfully'}, status=status.HTTP_200_OK)
+
+    # ===  ===
     @action(detail=True, methods=['post'])
     def clone(self, request, pk=None):
         form = self.get_object()
@@ -118,10 +184,12 @@ class FormularViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(cloned_form)
         return Response(serializer.data)
 
-    # Pregled rezultata popunjenih formi
+    # === Rezultati popunjenih formi ===
     @action(detail=True, methods=['get'])
     def results(self, request, pk=None):
         form = self.get_object()
+
+        # dozvoljen pristup samo kreatoru i kolaboratorima
         if not (form.creator == request.user or form.collaborators.filter(pk=request.user.id).exists()):
             return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -144,10 +212,11 @@ class FormularViewSet(viewsets.ModelViewSet):
 
         return Response(data)
 
-    # Izvoz rezultata u Excel
+    # === Izvoz u Excel ===
     @action(detail=True, methods=['get'])
     def export(self, request, pk=None):
         form = self.get_object()
+
         if not (form.creator == request.user or form.collaborators.filter(pk=request.user.id).exists()):
             return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -179,6 +248,59 @@ class FormularViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename="{form.name}.xlsx"'
         wb.save(response)
         return response
+
+# ------------------ QUESTIONS ------------------
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        form_id = self.request.data.get('form')
+        if not form_id:
+            return Response({'error': 'Missing form ID'}, status=status.HTTP_400_BAD_REQUEST)
+        form = get_object_or_404(Formular, id=form_id)
+        serializer.save(form=form)
+
+    @action(detail=True, methods=['post'])
+    def upload_image(self, request, pk=None):
+        """Upload slika za pitanje"""
+        question = self.get_object()
+        image = request.FILES.get('image')
+
+        if not image:
+            return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        question.image = image
+        question.save()
+        return Response({'message': 'Image uploaded successfully', 'image_url': question.image.url})
+    
+# ------------------ OPTIONS ------------------
+class OptionViewSet(viewsets.ModelViewSet):
+    queryset = Option.objects.all()
+    serializer_class = OptionSerializer  # ili OptionSerializer ako ga imaš
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['post'])
+    def upload_image(self, request, pk=None):
+        """Upload slika za opciju"""
+        option = self.get_object()
+        image = request.FILES.get('image')
+
+        if not image:
+            return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        option.image = image
+        option.save()
+        return Response({'message': 'Image uploaded successfully', 'image_url': option.image.url})
+    
+    def perform_create(self, serializer):
+        serializer.save()
+
+
+
 
 
 # ------------------ FILLED FORM ------------------

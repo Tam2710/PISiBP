@@ -49,7 +49,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    ),
 }
+
 
 
 # Middleware
@@ -67,12 +71,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "forms_platform.urls"
 
-# Templates (ako frontend ima HTML fajlove)
+# Templates (frontend HTML fajlovi)
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            BASE_DIR / "frontend",   #  Dodato da Django vidi frontend HTML fajlove
+            BASE_DIR / "frontend",  # Django vidi frontend HTML fajlove
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -89,10 +93,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "forms_platform.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# Baza podataka
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -100,10 +101,7 @@ DATABASES = {
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# Validacija lozinki
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -111,10 +109,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
+# Jezici i vreme
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "UTC"
@@ -123,21 +118,20 @@ USE_I18N = True
 
 USE_TZ = True
 
+# CORS postavke
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = "/static/"
-
-#  Dodato: Django traži CSS/JS u frontend folderu
+# Static fajlovi (CSS, JS, slike, HTML)
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ✅ Dodato
 STATICFILES_DIRS = [
-    BASE_DIR / "frontend",
+    os.path.join(BASE_DIR, 'frontend'),  # frontend folder
 ]
 
-#  Ako želiš da upload-uješ slike (npr. u formama)
+# Media fajlovi (uploadovane slike, datoteke)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = 'forms_app.User'

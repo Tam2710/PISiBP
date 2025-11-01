@@ -14,10 +14,13 @@ class Formular(models.Model):
     description = models.TextField(blank=True, null=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_forms')
     collaborators = models.ManyToManyField(User, blank=True, related_name='collaborations')
+    allow_anonymous = models.BooleanField(default=False)  #  Dodato
+    is_locked = models.BooleanField(default=False)        #  Dodato
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+
 
 class Collaborator(models.Model):
     ROLE_CHOICES = (('editor', 'Editor'), ('observer', 'Observer'))
