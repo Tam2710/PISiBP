@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>Form Editor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/styles.css">
 <style>
-  body { font-family: Arial, sans-serif; margin: 30px; background-color: #f7f7f7; }
   h2, h3 { color: #333; text-align: center; }
   form, .question-block {
     background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px;
@@ -15,18 +15,16 @@
     width: 100%; padding: 8px; margin: 5px 0 10px 0;
     border-radius: 5px; border: 1px solid #ccc;
   }
-  button {
-    display: inline-block; background-color: #007bff; color: white;
-    border: none; padding: 8px 14px; border-radius: 6px;
-    cursor: pointer; margin: 5px 5px;
+  label {
+    display: inline-block;
+    align-items: center; 
+    gap: 5px; 
+    font-size: 16px; 
+    flex-direction: row-reverse; 
   }
-  button:hover { background-color: #0056b3; }
-  .delete-btn {
-    background-color: #dc3545;
-  }
-  .delete-btn:hover { background-color: #b02a37; }
-  img.preview {
-    max-width: 120px; max-height: 100px; border-radius: 6px; margin: 5px 0;
+  label input[type="checkbox"] {
+    margin-left: 10px;
+    vertical-align: middle;
   }
 </style>
 </head>
