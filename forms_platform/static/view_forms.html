@@ -4,25 +4,119 @@
 <meta charset="UTF-8">
 <title>My Forms</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="../css/styles.css">
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
 <style>
+ body {
+  display: block !important;
+  width: 100% !important;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to bottom, lightgreen, white);
+  font-family: Arial, sans-serif;
+}
+
+
   h2 {
     text-align: center;
+    color: #333;
+    margin: 30px 0 20px;
   }
+
+  /* Centralni kontejner */
+ #formsList {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 80%;
+  max-width: 1100px;
+  margin: 0 auto 50px;  /* ovo centrira sadržaj */
+}
+
+  /* Svaka forma kao “kartica” */
   .form-card {
     background: #fff;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
   }
+
+  .form-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  }
+
   .locked {
-    opacity: 0.8;
+    opacity: 0.85;
+  }
+
+  .form-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    color: #333;
+  }
+
+  .form-card p {
+    color: #555;
+    margin-bottom: 15px;
+  }
+
+  /* Dugmad u redovima */
+  .form-card div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  /* Ujednačen izgled svih dugmadi */
+  .form-card button {
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    flex: 1 1 auto;
+    min-width: 120px;
+    max-width: 180px;
+    text-align: center;
+    transition: background-color 0.2s, transform 0.1s;
+  }
+
+  .form-card button:hover {
+    background-color: #6edb6e;
+    color: #222;
+    transform: scale(1.03);
+  }
+
+  /* Posebne klase za Delete i Share */
+  .form-card button.delete-btn {
+    background-color: #e74c3c;
+  }
+
+  .form-card button.delete-btn:hover {
+    background-color: #ff6b5c;
+  }
+
+  .form-card button.share-btn {
+    background-color: #3498db;
+  }
+
+  .form-card button.share-btn:hover {
+    background-color: #5dade2;
   }
 </style>
+
 </head>
 <body>
 
+  {% include 'top_bar.html' %}
+  
 <h2>📋 My Forms</h2>
 <div id="formsList"></div>
 

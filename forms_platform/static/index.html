@@ -1,37 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <title>Forms Platform</title>
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
-<meta charset="UTF-8">
-<title>Google Forms Clone</title>
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <style>
+  .welcome-card {
+    width: 800px;
+    height: 300px;
+    margin: 100px auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    padding: 30px;
+    text-align: center;
+    transition: transform 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .welcome-card h2 {
+    margin-bottom: 10px;
+    color: #28a745;
+  }
+
+  .welcome-card p {
+    margin-bottom: 30px;
+    color: #555;
+  }
+
+  /*  dugmići ravnomerno raspoređeni */
+  .welcome-buttons {
+    display: flex;
+    justify-content: center; /* centrirani u sredini */
+    gap: 25px; /* razmak između njih */
+    flex-wrap: wrap; /* ako se ekran smanji, prelome se lepo u novi red */
+  }
+
+  .welcome-buttons button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.3s, transform 0.2s;
+  }
+
+  .welcome-buttons button:hover {
+    background-color: #28a746;
+    transform: scale(1.05);
+  }
+</style>
+
 </head>
 
 <body>
   {% include "top_bar.html" %}
 
-  <div id="content" class="form-container" style="margin-top: 80px;">
-    <h3>Welcome to the Forms Platform</h3>
-    <p>Use the buttons above to log in, register, or manage your forms.</p>
+  <div id="content" style="margin-top: 90px;">
+    <!-- Ovdje se menja sadržaj u zavisnosti od login stanja -->
   </div>
-</body>
 
+  <script>
+    function renderWelcome(){
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const loggedIn = !!localStorage.getItem('access');
+      const content = document.getElementById('content');
 
-<script>
-function renderWelcome(){
-  document.getElementById('content').innerHTML = `
-    <div class="form-container">
-      <h3>Welcome to the Forms Platform</h3>
-      <p>Use the buttons above to log in, register, or manage your forms.</p>
-    </div>
-  `;
-}
+      if(loggedIn && user){
+        //  Prikaz za ulogovanog korisnika
+        content.innerHTML = `
+          <div class="welcome-card">
+            <h2>Welcome back, ${user.email.split('@')[0]}!</h2>
+            <p>You can now manage your forms directly from the dashboard.</p>
+            <div class="welcome-buttons">
+              <button onclick="createForm()">Create New Form</button>
+              <button onclick="openViewForms()">View My Forms</button>
+            </div>
+          </div>
+        `;
+      } else {
+        //  Prikaz za gosta
+        content.innerHTML = `
+          <div class="welcome-card">
+            <h2>Welcome to the Forms Platform</h2>
+            <p>Create, share and analyze your own forms — quickly and easily.</p>
+            <div class="welcome-buttons">
+              <button onclick="showPopup('login')">Login</button>
+              <button onclick="showPopup('signup')">Sign Up</button>
+            </div>
+          </div>
+        `;
+      }
+    }
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderWelcome();
-  updateButtons();
-});
-</script>
-
+    document.addEventListener('DOMContentLoaded', () => {
+      renderWelcome();
+      updateButtons();
+    });
+  </script>
 </body>
 </html>

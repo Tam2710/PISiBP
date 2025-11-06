@@ -2,8 +2,8 @@
   <div class="topbar-container">
     <div class="logo"><strong>Forms Platform</strong></div>
     <div class="nav-buttons">
-      <button id="btnLogin" onclick="showLogin()">Login</button>
-      <button id="btnSignup" onclick="showRegister()">Sign Up</button>
+      <button id="btnLogin" onclick="showPopup('login')">Login</button>
+      <button id="btnSignup" onclick="showPopup('signup')">Sign Up</button>
       <button id="btnCreate" onclick="createForm()">Create Form</button>
       <button id="btnView" onclick="openViewForms()">View Forms</button>
       <button id="btnLogout" onclick="logout()">Logout</button>
@@ -11,39 +11,120 @@
   </div>
 </div>
 
+<!-- Popup koji se koristi za login/signup -->
+<div id="popup" class="popup hidden"></div>
+
 <style>
-  #topbar {
-    background-color: #28a745;
+ #topbar {
+    position: fixed;
+    height: 7%;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    background: rgba(40, 167, 69, 0.95);
     color: white;
-    padding: 12px 25px;
-    border-radius: 8px;
+    padding: 14px 40px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-    margin-bottom: 20px;
   }
+
   .topbar-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .logo { font-size: 22px; }
+
+  .logo {
+    font-size: 22px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  /* 🔹 Dugmići — ista visina, širina po tekstu */
+  .nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
   .nav-buttons button {
-    margin-left: 10px;
-    padding: 6px 12px;
+    height: 40px;              /*  ista visina */
+    padding: 0 18px;           /*  širina po tekstu */
     border: none;
     border-radius: 6px;
     background-color: #007bff;
     color: white;
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;       /*  sprečava prelamanje teksta */
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+  }
+
+  .nav-buttons button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+  }
+
+  /* Popup overlay */
+  .popup {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .popup-content {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    width: 350px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .popup-content h3 {
+    margin-bottom: 15px;
+    color: #28a745;
+  }
+
+  .popup-content input {
+    width: 90%;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+
+  .popup-content button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 6px;
+    background: #28a745;
+    color: white;
     cursor: pointer;
     transition: background 0.3s;
   }
-  .nav-buttons button:hover { background-color: #0056b3; }
+
+  .popup-content button:hover {
+    background: #1e7e34;
+  }
+
+  .hidden { display: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
 </style>
 
 <script>
 const API_URL = "http://127.0.0.1:8000/api/";
 
-function updateButtons(){
+function updateButtons() {
   const loggedIn = !!localStorage.getItem('access');
   document.getElementById('btnLogin').style.display = loggedIn ? 'none' : 'inline-block';
   document.getElementById('btnSignup').style.display = loggedIn ? 'none' : 'inline-block';
@@ -52,68 +133,76 @@ function updateButtons(){
   document.getElementById('btnLogout').style.display = loggedIn ? 'inline-block' : 'none';
 }
 
-function logout(){
+function logout() {
   localStorage.clear();
   renderWelcome();
   updateButtons();
 }
 
-function createForm(){
-  localStorage.removeItem('formId');
-  localStorage.removeItem('formData');
-  window.location.href = '/form_editor/';
+function showPopup(type) {
+  const popup = document.getElementById('popup');
+  popup.classList.remove('hidden');
+  popup.innerHTML = `
+    <div class="popup-content">
+      <h3>${type === 'login' ? 'Login' : 'Sign Up'}</h3>
+      <input type="email" id="${type}Email" placeholder="Email" required>
+      <input type="password" id="${type}Pass" placeholder="Password" required>
+      <button onclick="${type === 'login' ? 'login()' : 'register()'}">${type === 'login' ? 'Login' : 'Register'}</button>
+      <button style="background:#ccc;color:black" onclick="closePopup()">Cancel</button>
+    </div>
+  `;
 }
 
-function openViewForms(){
-  window.location.href = '/forms/';
+function closePopup() {
+  document.getElementById('popup').classList.add('hidden');
 }
 
-async function register(){
-  const email = document.getElementById('regEmail').value;
-  const password = document.getElementById('regPass').value;
+async function register() {
+  const email = document.getElementById('signupEmail').value;
+  const password = document.getElementById('signupPass').value;
   const res = await fetch('http://127.0.0.1:8000/register/', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({email, password})
   });
   const data = await res.json();
-  if(res.ok){
-    alert('✅ Registration successful! You can now log in.');
-    showLogin();
-  } else alert(data.error || '❌ Error registering.');
+  if (res.ok) {
+    alert('✅ Registration successful!');
+    closePopup();
+    showPopup('login');
+  } else {
+    alert(data.error || '❌ Registration failed.');
+  }
 }
 
-function showLogin(){
-  document.getElementById('content').innerHTML = `
-    <div class="login-container">
-      <h3>Login</h3>
-      <input id="loginEmail" type="email" placeholder="Email" required>
-      <input id="loginPass" type="password" placeholder="Password" required>
-      <button onclick="login()">Login</button>
-    </div>
-  `;
+async function login() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPass').value;
+  const res = await fetch('http://127.0.0.1:8000/login/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password})
+  });
+  const data = await res.json();
+  if (res.ok) {
+    localStorage.setItem('access', data.access);
+    localStorage.setItem('refresh', data.refresh);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    closePopup();
+    updateButtons();
+    renderWelcome();
+  } else {
+    alert(data.error || '❌ Login failed.');
+  }
 }
 
-function showRegister(){
-  document.getElementById('content').innerHTML = `
-    <div class="login-container">
-      <h3>Sign Up</h3>
-      <input id="regEmail" type="email" placeholder="Email" required>
-      <input id="regPass" type="password" placeholder="Password" required>
-      <button onclick="register()">Register</button>
-    </div>
-  `;
+function createForm() {
+  localStorage.removeItem('formId');
+  localStorage.removeItem('formData');
+  window.location.href = '/form_editor/';
 }
 
-function showRegister(){
-  document.getElementById('content').innerHTML = `
-    <div class="login-container">
-      <h3>Sign Up</h3>
-      <input id="regEmail" placeholder="Email" type="email" required>
-      <input id="regPass" type="password" placeholder="Password" required>
-      <button onclick="register()">Register</button>
-    </div>
-  `;
+function openViewForms() {
+  window.location.href = '/forms/';
 }
 </script>
-
