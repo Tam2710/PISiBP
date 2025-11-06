@@ -124,10 +124,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Static fajlovi (CSS, JS, slike, HTML)
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ✅ Dodato
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'frontend'),  # frontend folder
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')  #  
 
 # Media fajlovi (uploadovane slike, datoteke)
 MEDIA_URL = '/media/'

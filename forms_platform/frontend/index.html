@@ -1,116 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Google Forms Clone</title>
-<style>
-  body { font-family: Arial; margin: 40px; background-color: #f7f7f7; }
-  button { margin: 5px; padding: 8px 14px; cursor: pointer; border: none; border-radius: 6px; background-color: #007bff; color: white; }
-  button:hover { background-color: #0056b3; }
-  .hidden { display: none; }
-  .form-container { margin-top: 20px; }
+  <meta charset="UTF-8">
+  <title>Forms Platform</title>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <style>
+  .welcome-card {
+    width: 800px;
+    height: 300px;
+    margin: 100px auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    padding: 30px;
+    text-align: center;
+    transition: transform 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .welcome-card h2 {
+    margin-bottom: 10px;
+    color: #28a745;
+  }
+
+  .welcome-card p {
+    margin-bottom: 30px;
+    color: #555;
+  }
+
+  /*  dugmići ravnomerno raspoređeni */
+  .welcome-buttons {
+    display: flex;
+    justify-content: center; /* centrirani u sredini */
+    gap: 25px; /* razmak između njih */
+    flex-wrap: wrap; /* ako se ekran smanji, prelome se lepo u novi red */
+  }
+
+  .welcome-buttons button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.3s, transform 0.2s;
+  }
+
+  .welcome-buttons button:hover {
+    background-color: #28a746;
+    transform: scale(1.05);
+  }
 </style>
+
 </head>
+
 <body>
+  {% include "top_bar.html" %}
 
-<h2>Forms Platform</h2>
+  <div id="content" style="margin-top: 90px;">
+    <!-- Ovdje se menja sadržaj u zavisnosti od login stanja -->
+  </div>
 
-<div id="authButtons">
-  <button onclick="showLogin()">Login</button>
-  <button onclick="showRegister()">Sign Up</button>
-</div>
+  <script>
+    function renderWelcome(){
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const loggedIn = !!localStorage.getItem('access');
+      const content = document.getElementById('content');
 
-<div id="mainButtons" class="hidden">
-  <button onclick="createForm()">Create Form</button>
-  <button onclick="openViewForms()">View Forms</button>
-  <button onclick="logout()">Logout</button>
-</div>
+      if(loggedIn && user){
+        //  Prikaz za ulogovanog korisnika
+        content.innerHTML = `
+          <div class="welcome-card">
+            <h2>Welcome back, ${user.email.split('@')[0]}!</h2>
+            <p>You can now manage your forms directly from the dashboard.</p>
+            <div class="welcome-buttons">
+              <button onclick="createForm()">Create New Form</button>
+              <button onclick="openViewForms()">View My Forms</button>
+            </div>
+          </div>
+        `;
+      } else {
+        //  Prikaz za gosta
+        content.innerHTML = `
+          <div class="welcome-card">
+            <h2>Welcome to the Forms Platform</h2>
+            <p>Create, share and analyze your own forms — quickly and easily.</p>
+            <div class="welcome-buttons">
+              <button onclick="showPopup('login')">Login</button>
+              <button onclick="showPopup('signup')">Sign Up</button>
+            </div>
+          </div>
+        `;
+      }
+    }
 
-<div id="formContainer" class="form-container"></div>
-
-<script>
-const API_URL = "http://127.0.0.1:8000/api/";
-let token = localStorage.getItem('access');
-
-// ------------------ LOGIN / REGISTER ------------------
-function showLogin(){
-  document.getElementById('formContainer').innerHTML = `
-    <h3>Login</h3>
-    <input id="loginEmail" placeholder="Email"><br>
-    <input id="loginPass" type="password" placeholder="Password"><br>
-    <button onclick="login()">Login</button>
-  `;
-}
-
-function showRegister(){
-  document.getElementById('formContainer').innerHTML = `
-    <h3>Sign Up</h3>
-    <input id="regEmail" placeholder="Email"><br>
-    <input id="regPass" type="password" placeholder="Password"><br>
-    <button onclick="register()">Sign Up</button>
-  `;
-}
-
-async function register(){
-  const email = document.getElementById('regEmail').value;
-  const password = document.getElementById('regPass').value;
-  const res = await fetch('http://127.0.0.1:8000/register/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email, password})
-  });
-  const data = await res.json();
-  if(res.ok) alert('✅ Registration successful! Now log in.');
-  else alert(data.error || '❌ Error registering.');
-}
-
-async function login(){
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPass').value;
-  const res = await fetch('http://127.0.0.1:8000/login/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email, password})
-  });
-  const data = await res.json();
-  if(res.ok){
-    localStorage.setItem('access', data.access);
-    localStorage.setItem('refresh', data.refresh);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    showMainButtons();
-  } else alert(data.error || '❌ Login failed');
-}
-
-function showMainButtons(){
-  document.getElementById('authButtons').classList.add('hidden');
-  document.getElementById('mainButtons').classList.remove('hidden');
-  document.getElementById('formContainer').innerHTML = '';
-}
-
-// ------------------ LOGOUT ------------------
-function logout(){
-  localStorage.clear();
-  document.getElementById('authButtons').classList.remove('hidden');
-  document.getElementById('mainButtons').classList.add('hidden');
-  document.getElementById('formContainer').innerHTML = '';
-}
-
-// ------------------ NAVIGATION ------------------
-function createForm() {
-  // Očisti formId i sve stare podatke o formi
-  localStorage.removeItem('formId');
-  localStorage.removeItem('formData');
-  window.location.href = '/form_editor/';
-}
-
-
-function openViewForms(){
-  // koristi Django rutu /forms/
-  window.location.href = '/forms/';
-}
-
-// ------------------ AUTO LOGIN ------------------
-if(token) showMainButtons();
-</script>
+    document.addEventListener('DOMContentLoaded', () => {
+      renderWelcome();
+      updateButtons();
+    });
+  </script>
 </body>
 </html>

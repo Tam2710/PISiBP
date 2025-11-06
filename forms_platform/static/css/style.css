@@ -1,0 +1,192 @@
+/* styles.css */
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  margin: auto;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(to bottom, lightgreen, white);
+}
+
+.login-container {
+  width: 300px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.form-container {
+  width: 500px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  padding-left: 10px; /* Left padding */
+  padding-right: 10px; /* Right padding */
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box; /* Prevent overflow */
+}
+
+
+button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #4CAF50;
+  margin: 5px auto;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: lightgreen;
+  color: black;
+}
+
+/* Smaller, right-aligned "Add" buttons */
+button[type="button"] {
+  width: auto;
+  padding: 6px 12px;
+  margin-left: auto;
+  margin-top: 10px;
+  margin-bottom: 10px; 
+  display: block;
+  font-size: 14px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+button[type="button"]:hover {
+  background-color: lightgreen;
+  color: black;
+}
+
+
+.hidden {
+  display: none;
+  color: red;
+}
+/*
+textarea {
+  max-width: 100%;
+  resize: both;
+  overflow: auto;
+}
+*/
+/* Search bar styling */
+#search-bar {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+#search-bar:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  outline: none;
+}
+
+/* Form item container */
+.form-item {
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: box-shadow 0.2s;
+}
+
+.form-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Form title */
+.form-item h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+/* Question blocks (same box look as form-container but smaller) */
+.question-block {
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Option list items */
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+  border: 1px solid #ccc;
+  padding: 5px 8px;
+  border-radius: 5px;
+}
+.option-item input[type="text"] {
+  flex: 1 1 50%;
+  padding: 5px;
+  font-size: 16px;
+}
+
+/* Small red delete buttons for questions/options */
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+/* Image preview thumbnails */
+img.preview {
+  max-width: 120px;
+  max-height: 100px;
+  border-radius: 6px;
+  margin: 5px 0;
+  display: block;
+}
+
+/* For checkbox alignment inside labels */
+label input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+/* Container that holds all the questions */
+#questionsList {
+  width: 100%;
+}

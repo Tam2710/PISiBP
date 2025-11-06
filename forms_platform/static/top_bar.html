@@ -1,0 +1,119 @@
+<div id="topbar">
+  <div class="topbar-container">
+    <div class="logo"><strong>Forms Platform</strong></div>
+    <div class="nav-buttons">
+      <button id="btnLogin" onclick="showLogin()">Login</button>
+      <button id="btnSignup" onclick="showRegister()">Sign Up</button>
+      <button id="btnCreate" onclick="createForm()">Create Form</button>
+      <button id="btnView" onclick="openViewForms()">View Forms</button>
+      <button id="btnLogout" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  #topbar {
+    background-color: #28a745;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    margin-bottom: 20px;
+  }
+  .topbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .logo { font-size: 22px; }
+  .nav-buttons button {
+    margin-left: 10px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: #007bff;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .nav-buttons button:hover { background-color: #0056b3; }
+</style>
+
+<script>
+const API_URL = "http://127.0.0.1:8000/api/";
+
+function updateButtons(){
+  const loggedIn = !!localStorage.getItem('access');
+  document.getElementById('btnLogin').style.display = loggedIn ? 'none' : 'inline-block';
+  document.getElementById('btnSignup').style.display = loggedIn ? 'none' : 'inline-block';
+  document.getElementById('btnCreate').style.display = loggedIn ? 'inline-block' : 'none';
+  document.getElementById('btnView').style.display = loggedIn ? 'inline-block' : 'none';
+  document.getElementById('btnLogout').style.display = loggedIn ? 'inline-block' : 'none';
+}
+
+function logout(){
+  localStorage.clear();
+  renderWelcome();
+  updateButtons();
+}
+
+function createForm(){
+  localStorage.removeItem('formId');
+  localStorage.removeItem('formData');
+  window.location.href = '/form_editor/';
+}
+
+function openViewForms(){
+  window.location.href = '/forms/';
+}
+
+async function register(){
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPass').value;
+  const res = await fetch('http://127.0.0.1:8000/register/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password})
+  });
+  const data = await res.json();
+  if(res.ok){
+    alert('✅ Registration successful! You can now log in.');
+    showLogin();
+  } else alert(data.error || '❌ Error registering.');
+}
+
+function showLogin(){
+  document.getElementById('content').innerHTML = `
+    <div class="login-container">
+      <h3>Login</h3>
+      <input id="loginEmail" type="email" placeholder="Email" required>
+      <input id="loginPass" type="password" placeholder="Password" required>
+      <button onclick="login()">Login</button>
+    </div>
+  `;
+}
+
+function showRegister(){
+  document.getElementById('content').innerHTML = `
+    <div class="login-container">
+      <h3>Sign Up</h3>
+      <input id="regEmail" type="email" placeholder="Email" required>
+      <input id="regPass" type="password" placeholder="Password" required>
+      <button onclick="register()">Register</button>
+    </div>
+  `;
+}
+
+function showRegister(){
+  document.getElementById('content').innerHTML = `
+    <div class="login-container">
+      <h3>Sign Up</h3>
+      <input id="regEmail" placeholder="Email" type="email" required>
+      <input id="regPass" type="password" placeholder="Password" required>
+      <button onclick="register()">Register</button>
+    </div>
+  `;
+}
+</script>
+
