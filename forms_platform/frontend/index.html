@@ -3,13 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <title>Forms Platform</title>
-{% load static %}
-<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
   <style>
+  /* glavni sadržaj ispod top bara */
+  #content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: calc(100vh - 80px); /* visina ekrana minus topbar */
+    padding-top: 20px;
+    box-sizing: border-box;
+  }
+
   .welcome-card {
     width: 800px;
     height: 300px;
-    margin: 100px auto;
+    margin: 0 auto;
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
@@ -31,12 +43,11 @@
     color: #555;
   }
 
-  /*  dugmići ravnomerno raspoređeni */
   .welcome-buttons {
     display: flex;
-    justify-content: center; /* centrirani u sredini */
-    gap: 25px; /* razmak između njih */
-    flex-wrap: wrap; /* ako se ekran smanji, prelome se lepo u novi red */
+    justify-content: center;
+    gap: 25px;
+    flex-wrap: wrap;
   }
 
   .welcome-buttons button {
@@ -61,21 +72,21 @@
 <body>
   {% include "top_bar.html" %}
 
-  <div id="content" style="margin-top: 90px;">
-    <!-- Ovdje se menja sadržaj u zavisnosti od login stanja -->
-  </div>
+  <!-- sadržaj koji se menja u zavisnosti od login stanja -->
+  <div id="content" style="margin-top: 90px;"></div>
 
   <script>
-    function renderWelcome(){
+    function renderWelcome() {
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       const loggedIn = !!localStorage.getItem('access');
       const content = document.getElementById('content');
 
-      if(loggedIn && user){
-        //  Prikaz za ulogovanog korisnika
+      if (loggedIn && user) {
+        // prikaz za ulogovanog korisnika
+        const name = user.email ? user.email.split('@')[0] : user.username || 'User';
         content.innerHTML = `
           <div class="welcome-card">
-            <h2>Welcome back, ${user.email.split('@')[0]}!</h2>
+            <h2>Welcome back, ${name}!</h2>
             <p>You can now manage your forms directly from the dashboard.</p>
             <div class="welcome-buttons">
               <button onclick="createForm()">Create New Form</button>
@@ -84,7 +95,7 @@
           </div>
         `;
       } else {
-        //  Prikaz za gosta
+        // prikaz za gosta
         content.innerHTML = `
           <div class="welcome-card">
             <h2>Welcome to the Forms Platform</h2>
@@ -100,7 +111,9 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       renderWelcome();
-      updateButtons();
+      if (typeof updateButtons === 'function') {
+        updateButtons();
+      }
     });
   </script>
 </body>

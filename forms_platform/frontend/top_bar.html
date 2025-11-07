@@ -1,6 +1,6 @@
 <div id="topbar">
   <div class="topbar-container">
-    <div class="logo"><strong>Forms Platform</strong></div>
+    <div class="logo" onclick="window.location.href='/'"><strong>Forms Platform</strong></div>
     <div class="nav-buttons">
       <button id="btnLogin" onclick="showPopup('login')">Login</button>
       <button id="btnSignup" onclick="showPopup('signup')">Sign Up</button>
@@ -15,16 +15,31 @@
 <div id="popup" class="popup hidden"></div>
 
 <style>
- #topbar {
+  #topbar {
     position: fixed;
     height: 7%;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 10;
     background: rgba(40, 167, 69, 0.95);
     color: white;
     padding: 14px 40px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.15);
   }
+
+  .logo {
+  font-size: 22px;
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: pointer; /* pokazivač ruke */
+  user-select: none; /* sprečava označavanje teksta */
+}
+
+.logo:hover {
+  opacity: 0.8; /* blagi efekat da se zna da je klikabilno */
+}
+
 
   .topbar-container {
     display: flex;
@@ -38,7 +53,7 @@
     white-space: nowrap;
   }
 
-  /* 🔹 Dugmići — ista visina, širina po tekstu */
+  /* Dugmići – ista visina, širina po tekstu */
   .nav-buttons {
     display: flex;
     align-items: center;
@@ -46,15 +61,15 @@
   }
 
   .nav-buttons button {
-    height: 40px;              /*  ista visina */
-    padding: 0 18px;           /*  širina po tekstu */
+    height: 40px;           /* ista visina */
+    padding: 0 18px;        /* širina raste sa tekstom */
     border: none;
     border-radius: 6px;
     background-color: #007bff;
     color: white;
     font-size: 15px;
     font-weight: 500;
-    white-space: nowrap;       /*  sprečava prelamanje teksta */
+    white-space: nowrap;    /* da se tekst ne lomi u novi red */
     cursor: pointer;
     transition: background 0.3s, transform 0.2s;
   }
@@ -117,7 +132,7 @@
 
   @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+    to   { opacity: 1; transform: scale(1); }
   }
 </style>
 
@@ -126,17 +141,35 @@ const API_URL = "http://127.0.0.1:8000/api/";
 
 function updateButtons() {
   const loggedIn = !!localStorage.getItem('access');
-  document.getElementById('btnLogin').style.display = loggedIn ? 'none' : 'inline-block';
-  document.getElementById('btnSignup').style.display = loggedIn ? 'none' : 'inline-block';
-  document.getElementById('btnCreate').style.display = loggedIn ? 'inline-block' : 'none';
-  document.getElementById('btnView').style.display = loggedIn ? 'inline-block' : 'none';
-  document.getElementById('btnLogout').style.display = loggedIn ? 'inline-block' : 'none';
+  const loginBtn  = document.getElementById('btnLogin');
+  const signupBtn = document.getElementById('btnSignup');
+  const createBtn = document.getElementById('btnCreate');
+  const viewBtn   = document.getElementById('btnView');
+  const logoutBtn = document.getElementById('btnLogout');
+
+  if (!loginBtn) return;  // ako je topbar slučajno nije učitan
+
+  loginBtn.style.display  = loggedIn ? 'none' : 'inline-block';
+  signupBtn.style.display = loggedIn ? 'none' : 'inline-block';
+  createBtn.style.display = loggedIn ? 'inline-block' : 'none';
+  viewBtn.style.display   = loggedIn ? 'inline-block' : 'none';
+  logoutBtn.style.display = loggedIn ? 'inline-block' : 'none';
 }
 
 function logout() {
   localStorage.clear();
-  renderWelcome();
+
+  // ako postoji renderWelcome na stranici – pozovi ga
+  if (typeof renderWelcome === 'function') {
+    renderWelcome();
+  }
+
   updateButtons();
+
+  // ako nismo na index strani, vrati nas na početnu
+  if (window.location.pathname !== '/') {
+    window.location.href = '/';
+  }
 }
 
 function showPopup(type) {
@@ -147,7 +180,9 @@ function showPopup(type) {
       <h3>${type === 'login' ? 'Login' : 'Sign Up'}</h3>
       <input type="email" id="${type}Email" placeholder="Email" required>
       <input type="password" id="${type}Pass" placeholder="Password" required>
-      <button onclick="${type === 'login' ? 'login()' : 'register()'}">${type === 'login' ? 'Login' : 'Register'}</button>
+      <button onclick="${type === 'login' ? 'login()' : 'register()'}">
+        ${type === 'login' ? 'Login' : 'Register'}
+      </button>
       <button style="background:#ccc;color:black" onclick="closePopup()">Cancel</button>
     </div>
   `;
@@ -160,12 +195,15 @@ function closePopup() {
 async function register() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPass').value;
+
   const res = await fetch('http://127.0.0.1:8000/register/', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({email, password})
   });
+
   const data = await res.json();
+
   if (res.ok) {
     alert('✅ Registration successful!');
     closePopup();
@@ -178,19 +216,28 @@ async function register() {
 async function login() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPass').value;
+
   const res = await fetch('http://127.0.0.1:8000/login/', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({email, password})
   });
+
   const data = await res.json();
+
   if (res.ok) {
     localStorage.setItem('access', data.access);
     localStorage.setItem('refresh', data.refresh);
     localStorage.setItem('user', JSON.stringify(data.user));
     closePopup();
     updateButtons();
-    renderWelcome();
+
+    if (typeof renderWelcome === 'function') {
+      renderWelcome();
+    } else {
+      // ako smo na nekoj drugoj stranici, samo osveži
+      window.location.reload();
+    }
   } else {
     alert(data.error || '❌ Login failed.');
   }
@@ -205,4 +252,7 @@ function createForm() {
 function openViewForms() {
   window.location.href = '/forms/';
 }
+
+// da se dugmad odmah prilagode kad se stranica učita
+document.addEventListener('DOMContentLoaded', updateButtons);
 </script>

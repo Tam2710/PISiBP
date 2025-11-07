@@ -1,53 +1,118 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Form Editor</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
+{% block title %}Form Editor{% endblock %}
+
+{% block extra_head %}
 <style>
-  h2, h3 { color: #333; text-align: center; }
+  h2, h3 {
+    color: #333;
+    text-align: center;
+  }
+
+  .editor-container {
+    width: 90%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
   form, .question-block {
-    background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px;
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
+
   input[type="text"], textarea, select {
-    width: 100%; padding: 8px; margin: 5px 0 10px 0;
-    border-radius: 5px; border: 1px solid #ccc;
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
   }
+
   label {
-    display: inline-block;
-    align-items: center; 
-    gap: 5px; 
-    font-size: 16px; 
-    flex-direction: row-reverse; 
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 16px;
   }
+
   label input[type="checkbox"] {
     margin-left: 10px;
     vertical-align: middle;
   }
+
+  button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  }
+
+  button:hover {
+    background-color: #6edb6e;
+    color: #222;
+    transform: scale(1.03);
+  }
+
+  .delete-btn {
+    background-color: #e74c3c;
+  }
+
+  .delete-btn:hover {
+    background-color: #ff6b5c;
+  }
+
+  .preview {
+    margin-top: 8px;
+    border-radius: 8px;
+    width: 120px;
+    display: block;
+  }
+
+  .add-btn {
+    background-color: #3498db;
+  }
+
+  .add-btn:hover {
+    background-color: #5dade2;
+  }
+
+  .question-block strong {
+    display: block;
+    margin-bottom: 8px;
+  }
 </style>
-</head>
-<body>
+{% endblock %}
 
-<h2>Form Editor</h2>
+{% block content %}
+<div class="editor-container">
+  <h2>Form Editor</h2>
 
-<form id="formCreate" enctype="multipart/form-data">
-  <input type="text" id="formName" placeholder="Form Name" required>
-  <textarea id="formDesc" placeholder="Form Description"></textarea>
-  
-  <label><input type="checkbox" id="allowAnonymous"> Allow Anonymous</label>
-  <button type="submit">💾 Save Form</button>
-</form>
+  <form id="formCreate" enctype="multipart/form-data">
+    <input type="text" id="formName" placeholder="Form Name" required>
+    <textarea id="formDesc" placeholder="Form Description"></textarea>
 
-<h3>Questions</h3>
-<div id="questionsList"></div>
-<button type="button" onclick="addQuestion()">➕ Add Question</button>
+    <label><input type="checkbox" id="allowAnonymous"> Allow Anonymous</label>
+    <button type="submit">💾 Save Form</button>
+  </form>
+
+  <h3>Questions</h3>
+  <div id="questionsList"></div>
+  <button type="button" class="add-btn" onclick="addQuestion()">➕ Add Question</button>
+</div>
 
 <script>
-const API_URL = "http://127.0.0.1:8000/api/";
+// ⚠️ API_URL već postoji u top_bar.html
 const formId = localStorage.getItem('formId');
 const questions = [];
 
@@ -143,7 +208,6 @@ document.getElementById('formCreate').addEventListener('submit', async (e)=>{
   const savedForm = await res.json();
   const currentFormId = savedForm.id || formId;
 
-  // --- Save Questions and Options ---
   for (const q of questions) {
     const qData = new FormData();
     qData.append('form', currentFormId);
@@ -151,7 +215,6 @@ document.getElementById('formCreate').addEventListener('submit', async (e)=>{
     qData.append('type', q.type);
     qData.append('required', q.required);
 
-    // ✅ Ako pitanje već postoji — UPDATE, inače CREATE
     const qUrl = q.id ? `${API_URL}questions/${q.id}/` : `${API_URL}questions/`;
     const qMethod = q.id ? 'PUT' : 'POST';
     const qRes = await fetch(qUrl, {
@@ -183,7 +246,6 @@ document.getElementById('formCreate').addEventListener('submit', async (e)=>{
         optData.append('question', q.id);
         optData.append('text', opt.text);
 
-        // ✅ Ako opcija već postoji — UPDATE, inače CREATE
         const optUrl = opt.id ? `${API_URL}options/${opt.id}/` : `${API_URL}options/`;
         const optMethod = opt.id ? 'PUT' : 'POST';
         const optRes = await fetch(optUrl, {
@@ -213,21 +275,17 @@ document.getElementById('formCreate').addEventListener('submit', async (e)=>{
   window.location.href = '/forms/';
 });
 
-// === ADD QUESTION ===
+// === ADD / DELETE QUESTION ===
 function addQuestion() {
   questions.push({text: '', type: 'short_text', required: true, options: []});
   renderQuestions();
 }
-
-// === DELETE QUESTION ===
 function deleteQuestion(i) {
   if (confirm("Delete this question?")) {
     questions.splice(i, 1);
     renderQuestions();
   }
 }
-
-// === ADD / DELETE OPTION ===
 function addOption(qIndex) {
   questions[qIndex].options.push({text: '', image: null});
   renderQuestions();
@@ -279,7 +337,7 @@ function renderQuestions() {
               <button class="delete-btn" type="button" onclick="deleteOption(${i},${j})">❌</button>
             </div>
           `).join('')}
-          <button type="button" onclick="addOption(${i})">➕ Add Option</button>
+          <button type="button" class="add-btn" onclick="addOption(${i})">➕ Add Option</button>
         </div>
       ` : ''}
     `;
@@ -288,6 +346,5 @@ function renderQuestions() {
 }
 renderQuestions();
 </script>
-</body>
-</html>
+{% endblock %}
 

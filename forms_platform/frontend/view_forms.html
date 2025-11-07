@@ -1,38 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>My Forms</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+{% block title %}My Forms{% endblock %}
+
+{% block extra_head %}
 <style>
- body {
-  display: block !important;
-  width: 100% !important;
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(to bottom, lightgreen, white);
-  font-family: Arial, sans-serif;
-}
-
-
   h2 {
     text-align: center;
     color: #333;
-    margin: 30px 0 20px;
+    margin: 20px 0 20px;
   }
 
-  /* Centralni kontejner */
- #formsList {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  width: 80%;
-  max-width: 1100px;
-  margin: 0 auto 50px;  /* ovo centrira sadržaj */
-}
+  /* Centralni kontejner za liste formi */
+  #formsList {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 80%;
+    max-width: 1100px;
+    margin: 0 auto 50px;
+  }
 
   /* Svaka forma kao “kartica” */
   .form-card {
@@ -64,15 +52,15 @@
     margin-bottom: 15px;
   }
 
-  /* Dugmad u redovima */
-  .form-card div {
+  /* Red sa dugmićima */
+  .form-card .buttons-row {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start;
     gap: 10px;
   }
 
-  /* Ujednačen izgled svih dugmadi */
+  /* Dugmad – iste visine, širina po tekstu */
   .form-card button {
     background-color: #4CAF50;
     border: none;
@@ -94,7 +82,6 @@
     transform: scale(1.03);
   }
 
-  /* Posebne klase za Delete i Share */
   .form-card button.delete-btn {
     background-color: #e74c3c;
   }
@@ -111,20 +98,17 @@
     background-color: #5dade2;
   }
 </style>
+{% endblock %}
 
-</head>
-<body>
-
-
-  
+{% block content %}
 <h2>📋 My Forms</h2>
 <div id="formsList"></div>
 
 <script>
-const API_URL = "http://127.0.0.1:8000/api/";
-let token = localStorage.getItem('access');
+// ⚠️ VAŽNO: API_URL NE DEFINIŠEMO PONOVO – već je definisan u top_bar.html
+let token   = localStorage.getItem('access');
 const refresh = localStorage.getItem('refresh');
-const user = JSON.parse(localStorage.getItem('user') || "{}");
+const user    = JSON.parse(localStorage.getItem('user') || "{}");
 
 // === Token Refresh ===
 async function getValidToken() {
@@ -192,7 +176,7 @@ async function loadForms() {
     div.setAttribute("data-form-id", f.id);
 
     const isCreator = f.creator?.email === user.email;
-    const isLocked = f.is_locked || false;
+    const isLocked  = f.is_locked || false;
 
     let buttons = `<button onclick="viewResults(${f.id})">📊 Results</button>`;
 
@@ -204,10 +188,12 @@ async function loadForms() {
       buttons += `
         <button onclick="addCollaborator(${f.id})">➕ Add Collaborator</button>
         <button onclick="removeCollaborators(${f.id})">❌ Remove Collaborators</button>
-        <button onclick="deleteForm(${f.id})">🗑 Delete</button>
-        ${!isLocked
-          ? `<button class="publish-btn" onclick="publishForm(${f.id})">🚀 Publish</button>`
-          : `<button class="share-btn" onclick="shareForm(${f.id})">🔗 Share</button>`}
+        <button class="delete-btn" onclick="deleteForm(${f.id})">🗑 Delete</button>
+        ${
+          !isLocked
+            ? `<button class="publish-btn" onclick="publishForm(${f.id})">🚀 Publish</button>`
+            : `<button class="share-btn" onclick="shareForm(${f.id})">🔗 Share</button>`
+        }
       `;
     } else if (isLocked) {
       buttons += `<button class="share-btn" onclick="shareForm(${f.id})">🔗 Share</button>`;
@@ -216,7 +202,7 @@ async function loadForms() {
     div.innerHTML = `
       <h3>${f.name} ${isLocked ? "🔒" : ""}</h3>
       <p>${f.description || "No description"}</p>
-      <div>${buttons}</div>
+      <div class="buttons-row">${buttons}</div>
     `;
     container.appendChild(div);
   });
@@ -324,7 +310,6 @@ async function publishForm(id) {
   if (res.ok) {
     alert("🚀 Form published!");
 
-    // 🔄 Ažuriraj prikaz bez ponovnog učitavanja cele stranice
     const formCard = document.querySelector(`[data-form-id="${id}"]`);
     if (formCard) {
       formCard.classList.add("locked");
@@ -334,15 +319,13 @@ async function publishForm(id) {
         title.textContent += " 🔒";
       }
 
-      // Ukloni Edit i Publish dugmad
       const editBtn = formCard.querySelector('button[onclick^="editForm"]');
       if (editBtn) editBtn.remove();
 
       const publishBtn = formCard.querySelector(".publish-btn");
       if (publishBtn) {
-        publishBtn.outerHTML = `
-          <button class="share-btn" onclick="shareForm(${id})">🔗 Share</button>
-        `;
+        publishBtn.outerHTML =
+          `<button class="share-btn" onclick="shareForm(${id})">🔗 Share</button>`;
       }
     }
   } else {
@@ -360,6 +343,4 @@ function shareForm(id) {
 
 loadForms();
 </script>
-</body>
-</html>
-
+{% endblock %}
