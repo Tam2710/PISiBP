@@ -1,207 +1,98 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Fill Form</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  {% load static %}
-  <link rel="stylesheet" href="{%static 'css/styles.css' %}">
-  <style>
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    form div {
-      background: #fff;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 8px;
-    }
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    input[type="time"],
-    textarea {
-      width: 100%;
-      padding: 8px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      resize: both;
-      overflow: auto;
-    }
-    img {
-      display: block;
-      margin-top: 8px;
-    }
-    
-    .center-message {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: #007bff;
-    }
-  </style>
-</head>
-<body>
-  {% include 'top_bar.html' %}
-  <div class="form-container">
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Fill Form{% endblock %}
+
+{% block extra_head %}
+<style>
+  h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+  }
+
+  .form-container {
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  form div {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  textarea {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    resize: both;
+    overflow: auto;
+  }
+
+  img {
+    display: block;
+    margin-top: 8px;
+    border-radius: 8px;
+  }
+
+  #submitBtn {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    font-size: 16px;
+    border-radius: 6px;
+    display: block;
+    margin: 25px auto 0;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  #submitBtn:hover {
+    background-color: #6edb6e;
+    color: #222;
+  }
+
+  .center-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
   <h1>Fill Out the Form</h1>
-    <form id="fillForm"></form>
-    <button type="button" id="submitBtn" onclick="submitForm(event)">Submit</button>
-  </div>
-
-  <script>
-    const API_URL = "http://localhost:8000/api/";
-    const params = new URLSearchParams(window.location.search);
-    const formId = params.get("form");
-    const token = localStorage.getItem("access");
-    let formData = {};
-
-    const fillFormContainer = document.getElementById("fillForm");
-    const submitBtn = document.getElementById("submitBtn");
-
-    if (!formId) {
-      document.body.innerHTML = `
-        <div class="center-message" style="color:red;">❌ Form ID not found.</div>`;
-      throw new Error("Form ID missing from URL");
-    }
-
-    // === Učitaj formu ===
-    async function loadForm() {
-      try {
-        const headers = token ? { "Authorization": `Bearer ${token}` } : {};
-        const res = await fetch(`${API_URL}forms/${formId}/`, { headers });
-
-        if (!res.ok) {
-          const errText = await res.text();
-          console.error("❌ Greška:", errText);
-          document.body.innerHTML = `
-            <div class="center-message" style="color:red;">Greška pri učitavanju forme.</div>`;
-          return;
-        }
-
-        const form = await res.json();
-
-        // === Provera da li forma zahteva login ===
-        if (!token && form.allow_anonymous === false) {
-          document.body.innerHTML = `
-            <div class="center-message">🔒 ULOGUJ SE</div>`;
-          return;
-        }
-
-        document.title = form.name || "Fill Form";
-        document.querySelector("h1").textContent = form.name || "Fill Form";
-        console.log("📋 Form data:", form);
-        console.log("🧩 Questions:", form.questions);
-        form.questions.forEach(q => {
-        console.log(`🟡 Q${q.id} [${q.type}]:`, q.options);
-        });
+  <form id="fillForm"></form>
+  <button type="button" id="submitBtn" onclick="submitForm(event)">Submit</button>
+</div>
 
 
-        form.questions.forEach(q => {
-          const div = document.createElement("div");
-          let inputHTML = "";
-
-          switch (q.type) {
-            case "short_text":
-              inputHTML = `<input type="text" placeholder="Your answer" onchange="formData[${q.id}]=this.value">`;
-              break;
-            case "long_text":
-              inputHTML = `<textarea placeholder="Your answer" onchange="formData[${q.id}]=this.value"></textarea>`;
-              break;
-            case "single_choice":
-              inputHTML = q.options.map(opt => `
-                <label>
-                  <input type="radio" name="q${q.id}" value="${opt.id}" onchange="formData[${q.id}]=${opt.id}">
-                  ${opt.text}
-                  ${opt.image ? `<img src="http://localhost:8000${opt.image}" width="50">` : ""}
-                </label>`).join("<br>");
-              break;
-            case "multi_choice":
-              formData[q.id] = [];
-              inputHTML = q.options.map(opt => `
-                <label>
-                  <input type="checkbox" value="${opt.id}" onchange="toggleMultiChoice(${q.id}, ${opt.id}, this.checked)">
-                  ${opt.text}
-                  ${opt.image ? `<img src="http://localhost:8000${opt.image}" width="50">` : ""}
-                </label>`).join("<br>");
-              break;
-            case "numeric":
-              inputHTML = `<input type="number" onchange="formData[${q.id}]=this.value">`;
-              break;
-            case "date":
-              inputHTML = `<input type="date" onchange="formData[${q.id}]=this.value">`;
-              break;
-            case "time":
-              inputHTML = `<input type="time" onchange="formData[${q.id}]=this.value">`;
-              break;
-          }
-
-          div.innerHTML = `
-            <label>${q.text}</label>
-            ${q.image ? `<img src="http://localhost:8000${q.image}" width="100">` : ""}
-            <br>${inputHTML}
-          `;
-          fillFormContainer.appendChild(div);
-        });
-      } catch (err) {
-        console.error("⚠️ Neuspešno učitavanje:", err);
-        document.body.innerHTML = `
-          <div class="center-message" style="color:red;">Greška pri učitavanju forme.</div>`;
-      }
-    }
-
-    // === Multi Choice Toggle ===
-    function toggleMultiChoice(qid, optId, checked) {
-      if (checked) formData[qid].push(optId);
-      else formData[qid] = formData[qid].filter(id => id !== optId);
-    }
-
-    // === Slanje forme ===
-    async function submitForm(event) {
-      event.preventDefault();
-      const answers = Object.entries(formData).map(([qid, val]) => {
-        if (Array.isArray(val)) return { question: qid, selected_options: val };
-        else return { question: qid, value: val };
-      });
-
-      const payload = { form: formId, answers };
-
-      try {
-        const res = await fetch(`${API_URL}filled_forms/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          document.body.innerHTML = `
-            <div class="center-message">✅ FORM FILLED</div>`;
-        } else {
-          const err = await res.text();
-          console.error("❌ Error:", err);
-          alert("❌ Error submitting form.");
-        }
-      } catch (err) {
-        console.error("⚠️ Network error:", err);
-        alert("Network problem while submitting form.");
-      }
-    }
-
-    loadForm();
-  </script>
-</body>
-</html>
+{% load static %}
+<script src="{% static 'js/fill_form.js' %}"></script>
+{% endblock %}
 

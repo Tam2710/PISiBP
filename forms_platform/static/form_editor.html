@@ -1,293 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Form Editor</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
+{% block title %}Form Editor{% endblock %}
+
+{% block extra_head %}
 <style>
-  h2, h3 { color: #333; text-align: center; }
+  h2, h3 {
+    color: #333;
+    text-align: center;
+  }
+
+  .editor-container {
+    width: 90%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
   form, .question-block {
-    background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px;
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
+
   input[type="text"], textarea, select {
-    width: 100%; padding: 8px; margin: 5px 0 10px 0;
-    border-radius: 5px; border: 1px solid #ccc;
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
   }
+
   label {
-    display: inline-block;
-    align-items: center; 
-    gap: 5px; 
-    font-size: 16px; 
-    flex-direction: row-reverse; 
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 16px;
   }
+
   label input[type="checkbox"] {
     margin-left: 10px;
     vertical-align: middle;
   }
+
+  button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  }
+
+  button:hover {
+    background-color: #6edb6e;
+    color: #222;
+    transform: scale(1.03);
+  }
+
+  .delete-btn {
+    background-color: #e74c3c;
+  }
+
+  .delete-btn:hover {
+    background-color: #ff6b5c;
+  }
+
+  .preview {
+    margin-top: 8px;
+    border-radius: 8px;
+    width: 120px;
+    display: block;
+  }
+
+  .add-btn {
+    background-color: #3498db;
+  }
+
+  .add-btn:hover {
+    background-color: #5dade2;
+  }
+
+  .question-block strong {
+    display: block;
+    margin-bottom: 8px;
+  }
 </style>
-</head>
-<body>
+{% endblock %}
 
-<h2>Form Editor</h2>
+{% block content %}
+<div class="editor-container">
+  <h2>Form Editor</h2>
 
-<form id="formCreate" enctype="multipart/form-data">
-  <input type="text" id="formName" placeholder="Form Name" required>
-  <textarea id="formDesc" placeholder="Form Description"></textarea>
-  
-  <label><input type="checkbox" id="allowAnonymous"> Allow Anonymous</label>
-  <button type="submit">💾 Save Form</button>
-</form>
+  <form id="formCreate" enctype="multipart/form-data">
+    <input type="text" id="formName" placeholder="Form Name" required>
+    <textarea id="formDesc" placeholder="Form Description"></textarea>
 
-<h3>Questions</h3>
-<div id="questionsList"></div>
-<button type="button" onclick="addQuestion()">➕ Add Question</button>
+    <label><input type="checkbox" id="allowAnonymous"> Allow Anonymous</label>
+    <button type="submit">💾 Save Form</button>
+  </form>
 
-<script>
-const API_URL = "http://127.0.0.1:8000/api/";
-const formId = localStorage.getItem('formId');
-const questions = [];
+  <h3>Questions</h3>
+  <div id="questionsList"></div>
+  <button type="button" class="add-btn" onclick="addQuestion()">➕ Add Question</button>
+</div>
 
-// === TOKEN HANDLING ===
-async function getValidToken() {
-  let token = localStorage.getItem('access');
-  const refresh = localStorage.getItem('refresh');
-
-  if (token) {
-    const res = await fetch(API_URL + 'forms/', {
-      method: 'GET',
-      headers: {'Authorization': `Bearer ${token}`}
-    });
-    if (res.status !== 401) return token;
-  }
-
-  if (refresh) {
-    const res = await fetch(API_URL + 'token/refresh/', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ refresh })
-    });
-    const data = await res.json();
-    if (res.ok && data.access) {
-      localStorage.setItem('access', data.access);
-      return data.access;
-    }
-  }
-
-  alert('Please log in again.');
-  window.location.href = '/';
-  return null;
-}
-
-// === LOAD FORM FOR EDIT ===
-if (formId) loadFormData();
-
-async function loadFormData() {
-  const token = await getValidToken();
-  if (!token) return;
-
-  const res = await fetch(`${API_URL}forms/${formId}/`, {
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-  if (!res.ok) return alert("❌ Failed to load form data.");
-
-  const form = await res.json();
-  document.getElementById("formName").value = form.name || "";
-  document.getElementById("formDesc").value = form.description || "";
-  document.getElementById("allowAnonymous").checked = form.allow_anonymous || false;
-
-  questions.length = 0;
-  (form.questions || []).forEach(q => {
-    questions.push({
-      id: q.id,
-      text: q.text,
-      type: q.type,
-      required: q.required,
-      image_url: q.image || null,
-      image: null,
-      options: (q.options || []).map(opt => ({
-        id: opt.id,
-        text: opt.text,
-        image_url: opt.image || null,
-        image: null
-      }))
-    });
-  });
-  renderQuestions();
-}
-
-// === SAVE FORM ===
-document.getElementById('formCreate').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const token = await getValidToken();
-  if (!token) return;
-
-  const name = document.getElementById('formName').value.trim();
-  const desc = document.getElementById('formDesc').value.trim();
-  const allowAnonymous = document.getElementById('allowAnonymous').checked;
-  if (!name) return alert('⚠️ Form name is required.');
-
-  const formPayload = new FormData();
-  formPayload.append('name', name);
-  formPayload.append('description', desc);
-  formPayload.append('allow_anonymous', allowAnonymous);
-
-  const url = formId ? `${API_URL}forms/${formId}/` : `${API_URL}forms/`;
-  const method = formId ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: {'Authorization': `Bearer ${token}`}, body: formPayload });
-  if (!res.ok) return alert('❌ Error saving form.');
-
-  const savedForm = await res.json();
-  const currentFormId = savedForm.id || formId;
-
-  // --- Save Questions and Options ---
-  for (const q of questions) {
-    const qData = new FormData();
-    qData.append('form', currentFormId);
-    qData.append('text', q.text || '');
-    qData.append('type', q.type);
-    qData.append('required', q.required);
-
-    // ✅ Ako pitanje već postoji — UPDATE, inače CREATE
-    const qUrl = q.id ? `${API_URL}questions/${q.id}/` : `${API_URL}questions/`;
-    const qMethod = q.id ? 'PUT' : 'POST';
-    const qRes = await fetch(qUrl, {
-      method: qMethod,
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: qData
-    });
-
-    if (!qRes.ok) {
-      console.error("❌ Error saving question:", await qRes.text());
-      continue;
-    }
-
-    const newQuestion = await qRes.json();
-    q.id = newQuestion.id;
-
-    if (q.image) {
-      const imgData = new FormData();
-      imgData.append('image', q.image);
-      await fetch(`${API_URL}questions/${q.id}/upload_image/`, {
-        method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: imgData
-      });
-    }
-
-    if (['single_choice', 'multi_choice'].includes(q.type)) {
-      for (const opt of q.options || []) {
-        if (!opt.text.trim()) continue;
-        const optData = new FormData();
-        optData.append('question', q.id);
-        optData.append('text', opt.text);
-
-        // ✅ Ako opcija već postoji — UPDATE, inače CREATE
-        const optUrl = opt.id ? `${API_URL}options/${opt.id}/` : `${API_URL}options/`;
-        const optMethod = opt.id ? 'PUT' : 'POST';
-        const optRes = await fetch(optUrl, {
-          method: optMethod,
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: optData
-        });
-        if (!optRes.ok) continue;
-
-        const newOpt = await optRes.json();
-        opt.id = newOpt.id;
-
-        if (opt.image) {
-          const optImg = new FormData();
-          optImg.append('image', opt.image);
-          await fetch(`${API_URL}options/${opt.id}/upload_image/`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: optImg
-          });
-        }
-      }
-    }
-  }
-
-  alert('✅ Form and images saved successfully!');
-  window.location.href = '/forms/';
-});
-
-// === ADD QUESTION ===
-function addQuestion() {
-  questions.push({text: '', type: 'short_text', required: true, options: []});
-  renderQuestions();
-}
-
-// === DELETE QUESTION ===
-function deleteQuestion(i) {
-  if (confirm("Delete this question?")) {
-    questions.splice(i, 1);
-    renderQuestions();
-  }
-}
-
-// === ADD / DELETE OPTION ===
-function addOption(qIndex) {
-  questions[qIndex].options.push({text: '', image: null});
-  renderQuestions();
-}
-function deleteOption(qIndex, oIndex) {
-  if (confirm("Delete this option?")) {
-    questions[qIndex].options.splice(oIndex, 1);
-    renderQuestions();
-  }
-}
-
-// === RENDER QUESTIONS ===
-function renderQuestions() {
-  const container = document.getElementById('questionsList');
-  container.innerHTML = '';
-  questions.forEach((q, i) => {
-    const div = document.createElement('div');
-    div.classList.add('question-block');
-    div.innerHTML = `
-      <label>Question Text</label>
-      <input type="text" value="${q.text}" oninput="questions[${i}].text=this.value">
-
-      <label>Type</label>
-      <select onchange="questions[${i}].type=this.value; renderQuestions()">
-        <option value="short_text" ${q.type==='short_text'?'selected':''}>Short Text</option>
-        <option value="long_text" ${q.type==='long_text'?'selected':''}>Long Text</option>
-        <option value="single_choice" ${q.type==='single_choice'?'selected':''}>Single Choice</option>
-        <option value="multi_choice" ${q.type==='multi_choice'?'selected':''}>Multi Choice</option>
-        <option value="numeric" ${q.type==='numeric'?'selected':''}>Numeric</option>
-        <option value="date" ${q.type==='date'?'selected':''}>Date</option>
-        <option value="time" ${q.type==='time'?'selected':''}>Time</option>
-      </select>
-
-      <label>Image (optional)</label>
-      ${q.image_url ? `<img src="${q.image_url}" class="preview">` : ''}
-      <input type="file" accept="image/*" onchange="questions[${i}].image=this.files[0]">
-
-      <label><input type="checkbox" ${q.required?'checked':''} onchange="questions[${i}].required=this.checked"> Required</label>
-      <button class="delete-btn" type="button" onclick="deleteQuestion(${i})">❌ Delete Question</button>
-
-      ${['single_choice','multi_choice'].includes(q.type) ? `
-        <div>
-          <strong>Options:</strong>
-          ${(q.options||[]).map((opt, j) => `
-            <div>
-              <input type="text" value="${opt.text}" oninput="questions[${i}].options[${j}].text=this.value" placeholder="Option text">
-              ${opt.image_url ? `<img src="${opt.image_url}" class="preview">` : ''}
-              <input type="file" accept="image/*" onchange="questions[${i}].options[${j}].image=this.files[0]">
-              <button class="delete-btn" type="button" onclick="deleteOption(${i},${j})">❌</button>
-            </div>
-          `).join('')}
-          <button type="button" onclick="addOption(${i})">➕ Add Option</button>
-        </div>
-      ` : ''}
-    `;
-    container.appendChild(div);
-  });
-}
-renderQuestions();
-</script>
-</body>
-</html>
+{% load static %}
+<script src="{% static 'js/form_editor.js' %}"></script>
+{% endblock %}
 

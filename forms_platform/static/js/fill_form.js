@@ -1,0 +1,134 @@
+// ⚠️ API_URL već postoji u top_bar.html
+const params = new URLSearchParams(window.location.search);
+const formId = params.get("form");
+const token = localStorage.getItem("access");
+let formData = {};
+
+const fillFormContainer = document.getElementById("fillForm");
+const submitBtn = document.getElementById("submitBtn");
+
+if (!formId) {
+  document.querySelector("main").innerHTML =
+    `<div class="center-message" style="color:red;">❌ Form ID not found.</div>`;
+  throw new Error("Form ID missing from URL");
+}
+
+// === Učitaj formu ===
+async function loadForm() {
+  try {
+    const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+    const res = await fetch(`${API_URL}forms/${formId}/`, { headers });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("❌ Greška:", errText);
+      document.querySelector("main").innerHTML =
+        `<div class="center-message" style="color:red;">Greška pri učitavanju forme.</div>`;
+      return;
+    }
+
+    const form = await res.json();
+
+    if (!token && form.allow_anonymous === false) {
+      document.querySelector("main").innerHTML =
+        `<div class="center-message">🔒 Uloguj se da bi popunio formu</div>`;
+      return;
+    }
+
+    document.title = form.name || "Fill Form";
+    document.querySelector("h1").textContent = form.name || "Fill Form";
+
+    form.questions.forEach(q => {
+      const div = document.createElement("div");
+      let inputHTML = "";
+
+      switch (q.type) {
+        case "short_text":
+          inputHTML = `<input type="text" placeholder="Your answer" onchange="formData[${q.id}]=this.value">`;
+          break;
+        case "long_text":
+          inputHTML = `<textarea placeholder="Your answer" onchange="formData[${q.id}]=this.value"></textarea>`;
+          break;
+        case "single_choice":
+          inputHTML = q.options.map(opt => `
+            <label>
+              <input type="radio" name="q${q.id}" value="${opt.id}" onchange="formData[${q.id}]=${opt.id}">
+              ${opt.text}
+              ${opt.image ? `<img src="http://localhost:8000${opt.image}" width="50">` : ""}
+            </label>`).join("<br>");
+          break;
+        case "multi_choice":
+          formData[q.id] = [];
+          inputHTML = q.options.map(opt => `
+            <label>
+              <input type="checkbox" value="${opt.id}" onchange="toggleMultiChoice(${q.id}, ${opt.id}, this.checked)">
+              ${opt.text}
+              ${opt.image ? `<img src="http://localhost:8000${opt.image}" width="50">` : ""}
+            </label>`).join("<br>");
+          break;
+        case "numeric":
+          inputHTML = `<input type="number" onchange="formData[${q.id}]=this.value">`;
+          break;
+        case "date":
+          inputHTML = `<input type="date" onchange="formData[${q.id}]=this.value">`;
+          break;
+        case "time":
+          inputHTML = `<input type="time" onchange="formData[${q.id}]=this.value">`;
+          break;
+      }
+
+      div.innerHTML = `
+        <label>${q.text}</label>
+        ${q.image ? `<img src="http://localhost:8000${q.image}" width="100">` : ""}
+        <br>${inputHTML}
+      `;
+      fillFormContainer.appendChild(div);
+    });
+  } catch (err) {
+    console.error("⚠️ Neuspešno učitavanje:", err);
+    document.querySelector("main").innerHTML =
+      `<div class="center-message" style="color:red;">Greška pri učitavanju forme.</div>`;
+  }
+}
+
+// === Multi Choice Toggle ===
+function toggleMultiChoice(qid, optId, checked) {
+  if (checked) formData[qid].push(optId);
+  else formData[qid] = formData[qid].filter(id => id !== optId);
+}
+
+// === Slanje forme ===
+async function submitForm(event) {
+  event.preventDefault();
+  const answers = Object.entries(formData).map(([qid, val]) => {
+    if (Array.isArray(val)) return { question: qid, selected_options: val };
+    else return { question: qid, value: val };
+  });
+
+  const payload = { form: formId, answers };
+
+  try {
+    const res = await fetch(`${API_URL}filled_forms/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      document.querySelector("main").innerHTML =
+        `<div class="center-message">✅ Form successfully submitted!</div>`;
+    } else {
+      const err = await res.text();
+      console.error("❌ Error:", err);
+      alert("❌ Error submitting form.");
+    }
+  } catch (err) {
+    console.error("⚠️ Network error:", err);
+    alert("Network problem while submitting form.");
+  }
+}
+
+loadForm();
